@@ -1,0 +1,402 @@
+fmod TLS-INITIAL-ID is
+  protecting TLS-COMPONENT-ID .
+
+  ops CI SI N1 N2 NET : -> TId [ctor] .
+endfm
+
+fmod TLS-CERTIFICATE-ID is
+  protecting TLS-COMPONENT-ID .
+
+  op CA : -> TId [ctor] .
+endfm
+
+fmod TLS-INITIAL-KEY is
+  protecting KEY .
+  protecting TLS-INITIAL-ID .
+  protecting SIGNATURE-ALGORITHM .
+
+  var ID : TId .
+  var AKT : AsymKeyType .
+
+  ops pubKey1 pubKey2 : TId -> Key .
+  eq pubKey1(ID) = pubKey(ecdsa,nonce(ID, 0)) .
+  eq pubKey2(ID) = pubKey(rsa,nonce(ID, 0)) .
+
+  ops prvKey1 prvKey2 : TId -> Key .
+  eq prvKey1(ID) = prvKey(ecdsa,nonce(ID, 0)) .
+  eq prvKey2(ID) = prvKey(rsa,nonce(ID, 0)) .
+
+  op makePubKey : TId AsymKeyType -> Key .
+  eq makePubKey(ID, AKT) = pubKey(AKT, nonce(ID, 0)) .
+
+  op makePrvKey : TId AsymKeyType -> Key .
+  eq makePrvKey(ID, AKT) = prvKey(AKT, nonce(ID, 0)) .
+endfm
+
+fmod TLS-INITIAL-CERTIFICATE is
+  protecting TLS-INITIAL-ID .
+  protecting TLS-MESSAGE-CONTENT .
+  protecting TLS-CERTIFICATE-ID .
+  protecting TLS-INITIAL-KEY .
+  protecting HASH .
+
+  var ID : TId .
+  vars AKT CAKT : AsymKeyType .
+  var SALGO : SignatureAlgorithm .
+
+  op publicKeyAlgorithm : AsymKeyType -> PublicKeyAlgorithm .
+  eq publicKeyAlgorithm(ecdsa) = id-ecPublicKey .
+  eq publicKeyAlgorithm(rsa) = rsaEncryption .
+  eq publicKeyAlgorithm(dsa) = id-dsa .
+  eq publicKeyAlgorithm(dss) = id-dsa .
+  eq publicKeyAlgorithm(ed25519) = id-Ed25519 .
+  eq publicKeyAlgorithm(ed448) = id-Ed448 .
+
+  op certificateItems : TId AsymKeyType SignatureAlgorithm -> CertificateItems .
+  eq certificateItems(ID, AKT, SALGO)
+   = crIssuer(CA),
+     crSubjectName(ID),
+     crPublicKeyAlgorithm(publicKeyAlgorithm(AKT)),
+     crPublicKey(makePubKey(ID, AKT)),
+     crSignatureAlgorithm(SALGO) .
+
+  op makeCertificate : TId AsymKeyType SignatureAlgorithm AsymKeyType -> Certificate .
+  eq makeCertificate(ID, AKT, SALGO, CAKT)
+   = x509(certificateItems(ID, AKT, SALGO),
+          crSignature(encrypt(makePrvKey(CA, CAKT),
+                       hashContent(hash(hashC(SALGO),
+                         certificates(x509(certificateItems(ID, AKT, SALGO)))))))) .
+
+  op makeCertificate : TId AsymKeyType SignatureAlgorithm -> Certificate .
+  eq makeCertificate(ID, AKT, SALGO) = makeCertificate(ID, AKT, SALGO, signatureKeyType(SALGO)) .
+
+  ops cert1 cert2  cert3  cert4
+      cert5 cert6  cert7  cert8 
+	  cert9 cert10 cert11 cert12 : TId -> Certificate .
+  --- Public Key: ECDSA, CA Signature Algorithm : ECDSA+SHA256
+  eq cert1(ID) = x509(crIssuer(CA),
+                   crSubjectName(ID),
+				   crPublicKeyAlgorithm(id-ecPublicKey), 
+				   crPublicKey(pubKey(ecdsa,nonce(ID, 0))), 
+				   crSignatureAlgorithm({ecdsa,sha256}),
+				   crSignature(
+				    encrypt(prvKey(ecdsa, nonce(CA, 0)), 
+					         hashContent(hash(sha256, 
+							  certificates(x509(crIssuer(CA), 
+							                   crSignatureAlgorithm({ecdsa,sha256}), 
+											   crPublicKey(pubKey(ecdsa,nonce(ID, 0))), 
+											   crPublicKeyAlgorithm(id-ecPublicKey), 
+											   crSubjectName(ID)))))))) .
+
+  --- Public Key: ECDSA, CA Signature Algorithm : ECDSA+SHA512
+  eq cert2(ID) = x509(crIssuer(CA),
+                   crSubjectName(ID),
+				   crPublicKeyAlgorithm(id-ecPublicKey), 
+				   crPublicKey(pubKey(ecdsa,nonce(ID, 0))), 
+				   crSignatureAlgorithm({ecdsa,sha512}),
+				   crSignature(
+				    encrypt(prvKey(ecdsa, nonce(CA, 0)), 
+					         hashContent(hash(sha512, 
+							  certificates(x509(crIssuer(CA), 
+							                   crSignatureAlgorithm({ecdsa,sha512}), 
+											   crPublicKey(pubKey(ecdsa,nonce(ID,0))), 
+											   crPublicKeyAlgorithm(id-ecPublicKey), 
+											   crSubjectName(ID)))))))) .
+
+  --- Public Key: ECDSA, CA Signature Algorithm : ECDSA+SHA1
+  eq cert3(ID) = x509(crIssuer(CA),
+                   crSubjectName(ID),
+				   crPublicKeyAlgorithm(id-ecPublicKey), 
+				   crPublicKey(pubKey(ecdsa,nonce(ID, 0))), 
+				   crSignatureAlgorithm({ecdsa,sha}),
+				   crSignature(
+				    encrypt(prvKey(ecdsa, nonce(CA, 0)), 
+					         hashContent(hash(sha, 
+							  certificates(x509(crIssuer(CA), 
+							                   crSignatureAlgorithm({ecdsa,sha}), 
+											   crPublicKey(pubKey(ecdsa,nonce(ID,0))), 
+											   crPublicKeyAlgorithm(id-ecPublicKey), 
+											   crSubjectName(ID)))))))) .
+
+  --- Public Key: ECDSA, CA Signature Algorithm : RSA+SHA256
+  eq cert4(ID) = x509(crIssuer(CA),
+                   crSubjectName(ID),
+				   crPublicKeyAlgorithm(id-ecPublicKey), 
+				   crPublicKey(pubKey(ecdsa,nonce(ID, 0))), 
+				   crSignatureAlgorithm({rsa,sha256}),
+				   crSignature(
+				    encrypt(prvKey(rsa, nonce(CA, 0)), 
+					         hashContent(hash(sha256, 
+							  certificates(x509(crIssuer(CA), 
+							                   crSignatureAlgorithm({rsa,sha256}), 
+											   crPublicKey(pubKey(ecdsa,nonce(ID,0))), 
+											   crPublicKeyAlgorithm(id-ecPublicKey), 
+											   crSubjectName(ID)))))))) .
+
+  --- Public Key: ECDSA, CA Signature Algorithm : RSA+SHA512
+  eq cert5(ID) = x509(crIssuer(CA),
+                   crSubjectName(ID),
+				   crPublicKeyAlgorithm(id-ecPublicKey), 
+				   crPublicKey(pubKey(ecdsa,nonce(ID, 0))), 
+				   crSignatureAlgorithm({rsa,sha512}),
+				   crSignature(
+				    encrypt(prvKey(rsa, nonce(CA, 0)), 
+					         hashContent(hash(sha512, 
+							  certificates(x509(crIssuer(CA), 
+							                   crSignatureAlgorithm({rsa,sha512}), 
+											   crPublicKey(pubKey(ecdsa,nonce(ID,0))), 
+											   crPublicKeyAlgorithm(id-ecPublicKey), 
+											   crSubjectName(ID)))))))) .
+
+  --- Public Key: ECDSA, CA Signature Algorithm : RSA+SHA1
+  eq cert6(ID) = x509(crIssuer(CA),
+                   crSubjectName(ID),
+				   crPublicKeyAlgorithm(id-ecPublicKey), 
+				   crPublicKey(pubKey(ecdsa,nonce(ID, 0))), 
+				   crSignatureAlgorithm({rsa,sha}),
+				   crSignature(
+				    encrypt(prvKey(rsa, nonce(CA, 0)), 
+					         hashContent(hash(sha, 
+							  certificates(x509(crIssuer(CA), 
+							                   crSignatureAlgorithm({rsa,sha}), 
+											   crPublicKey(pubKey(ecdsa,nonce(ID,0))), 
+											   crPublicKeyAlgorithm(id-ecPublicKey), 
+											   crSubjectName(ID)))))))) .
+
+  --- Public Key: RSA, CA Signature Algorithm: ECDSA+SHA256
+  eq cert7(ID) = x509(crIssuer(CA),
+                   crSubjectName(ID),
+				   crPublicKeyAlgorithm(rsaEncryption), 
+				   crPublicKey(pubKey(rsa,nonce(ID, 0))), 
+				   crSignatureAlgorithm({ecdsa,sha256}),
+				   crSignature(
+				    encrypt(prvKey(ecdsa, nonce(CA, 0)), 
+					         hashContent(hash(sha256,
+					          certificates(x509(crIssuer(CA), 
+							                   crSignatureAlgorithm({ecdsa,sha256}), 
+											   crPublicKey(pubKey(ecdsa,nonce(ID,0))), 
+											   crPublicKeyAlgorithm(id-ecPublicKey), 
+											   crSubjectName(ID)))))))) .
+
+  --- Public Key: RSA, CA Signature Algorithm: ECDSA+SHA512
+  eq cert8(ID) = x509(crIssuer(CA),
+                   crSubjectName(ID),
+				   crPublicKeyAlgorithm(rsaEncryption), 
+				   crPublicKey(pubKey(rsa,nonce(ID, 0))), 
+				   crSignatureAlgorithm({ecdsa,sha512}),
+				   crSignature(
+				    encrypt(prvKey(ecdsa, nonce(CA, 0)), 
+					         hashContent(hash(sha512,
+					          certificates(x509(crIssuer(CA), 
+							                   crSignatureAlgorithm({ecdsa,sha512}), 
+											   crPublicKey(pubKey(ecdsa,nonce(ID,0))), 
+											   crPublicKeyAlgorithm(id-ecPublicKey), 
+											   crSubjectName(ID)))))))) .
+
+  --- Public Key: RSA, CA Signature Algorithm: ECDSA+SHA1
+  eq cert9(ID) = x509(crIssuer(CA),
+                   crSubjectName(ID),
+				   crPublicKeyAlgorithm(rsaEncryption), 
+				   crPublicKey(pubKey(rsa,nonce(ID, 0))), 
+				   crSignatureAlgorithm({ecdsa,sha}),
+				   crSignature(
+				    encrypt(prvKey(ecdsa, nonce(CA, 0)), 
+					         hashContent(hash(sha,
+					          certificates(x509(crIssuer(CA), 
+							                   crSignatureAlgorithm({ecdsa,sha}), 
+											   crPublicKey(pubKey(ecdsa,nonce(ID,0))), 
+											   crPublicKeyAlgorithm(id-ecPublicKey), 
+											   crSubjectName(ID)))))))) .
+
+  --- Public Key: RSA, CA Signature Algorithm: RSA+SHA256
+  eq cert10(ID) = x509(crIssuer(CA),
+                   crSubjectName(ID),
+				   crPublicKeyAlgorithm(rsaEncryption), 
+				   crPublicKey(pubKey(rsa,nonce(ID, 0))), 
+				   crSignatureAlgorithm({rsa,sha256}),
+				   crSignature(
+				    encrypt(prvKey(rsa, nonce(CA, 0)), 
+					         hashContent(hash(sha256,
+					          certificates(x509(crIssuer(CA), 
+							                   crSignatureAlgorithm({rsa,sha256}), 
+											   crPublicKey(pubKey(ecdsa,nonce(ID,0))), 
+											   crPublicKeyAlgorithm(id-ecPublicKey), 
+											   crSubjectName(ID)))))))) .
+
+  --- Public Key: RSA, CA Signature Algorithm: RSA+SHA512
+  eq cert11(ID) = x509(crIssuer(CA),
+                   crSubjectName(ID),
+				   crPublicKeyAlgorithm(rsaEncryption), 
+				   crPublicKey(pubKey(rsa,nonce(ID, 0))), 
+				   crSignatureAlgorithm({rsa,sha512}),
+				   crSignature(
+				    encrypt(prvKey(rsa, nonce(CA, 0)), 
+					         hashContent(hash(sha512,
+					          certificates(x509(crIssuer(CA), 
+							                   crSignatureAlgorithm({rsa,sha512}), 
+											   crPublicKey(pubKey(ecdsa,nonce(ID,0))), 
+											   crPublicKeyAlgorithm(id-ecPublicKey), 
+											   crSubjectName(ID)))))))) .
+
+  --- Public Key: RSA, CA Signature Algorithm: RSA+SHA1
+  eq cert12(ID) = x509(crIssuer(CA),
+                   crSubjectName(ID),
+				   crPublicKeyAlgorithm(rsaEncryption), 
+				   crPublicKey(pubKey(rsa,nonce(ID, 0))), 
+				   crSignatureAlgorithm({rsa,sha}),
+				   crSignature(
+				    encrypt(prvKey(rsa, nonce(CA, 0)), 
+					         hashContent(hash(sha,
+					          certificates(x509(crIssuer(CA), 
+							                   crSignatureAlgorithm({rsa,sha}), 
+											   crPublicKey(pubKey(ecdsa,nonce(ID,0))), 
+											   crPublicKeyAlgorithm(id-ecPublicKey), 
+											   crSubjectName(ID)))))))) .
+
+endfm
+
+omod TLS-INITIAL-SYSTEM is
+  protecting TLS-INITIAL-CERTIFICATE .
+  protecting TLS-INITIAL-KEY .
+  protecting TLS-OBJECT .
+  protecting LINK-OBJECT .
+
+  ops cobj sobj link1 link2 : -> Object .
+  op system : -> Configuration .
+
+  eq cobj 
+   = < (N1 . CI) : Client | 
+              target : N2 . SI,
+              --- supported features
+              cipherSuites : nil,
+              sessionId : noNonce,
+              publicKey : empty,
+              privateKey : empty,
+              certificates : nil,
+              compressions : nil,
+              extensions : empty,
+              pskInfo : nil,
+
+              --- selected session parameters
+              selectedVersion : noVersion,
+              selectedCipherSuite : noSuite,
+              selectedCompression : noComp,
+              selectedPSK : noNonce,
+              selectedExtensions : empty, 
+              serverRandom : noNonce,
+              clientRandom : noNonce,
+              sessionReadKey : noKey,
+              sessionWriteKey : noKey,
+              peerCertificate : nil,
+
+              --- TLS 1.2-specific features
+              sessionState : empty,
+              sessionResumption : false,
+              failedSessionId : noNonce,
+              secureRenegotiation : false,
+              masterSecret : noNonce,
+              keyExchangeGroup : noGroup,
+              keyExchangeValue : noNonce,
+              certificateType : nil,
+              certificateAlgo : nil,
+              certificateAuth : CA,
+              pendingReadKey : noKey,
+              pendingWriteKey : noKey,
+              prevClientVerifyData : noNonce,
+              prevServerVerifyData : noNonce,
+
+              --- TLS 1.3-specific features
+              earlySecret : noNonce,
+              sharedSecret : noNonce,
+              handshakeSecret : noNonce,
+              applicationSecret : noNonce,
+              certificateRequestContext : noNonce,
+              keyUpdateReq : false,
+              keyUpdateReqType : true,
+              keyUpdateWait : false,
+              pskDHEMode : nil,
+
+              --- runtime metadata
+              transcript : empty,
+              reconnect : false,
+              reconnectInProgress : false,
+              nonceCtr : 0,
+              errorLog : noError,
+
+              clientState : VC-NONE,
+			  certificateRequested : false,
+			  newSessionTicketWait : false,
+			  earlyDataReq : false,
+			  postClientAuthReq : false,
+			  clientRenegotiation : false > .
+
+  eq sobj 
+   = < (N2 . SI) : Server | 
+              target : N1 . CI,
+              --- supported features
+              cipherSuites : nil,
+              sessionId : noNonce,
+              publicKey : empty,
+              privateKey : empty,
+              certificates : nil,
+              compressions : nil,
+              extensions : empty,
+              pskInfo : nil,
+
+              --- selected session parameters
+              selectedVersion : noVersion,
+              selectedCipherSuite : noSuite,
+              selectedCompression : noComp,
+              selectedPSK : noNonce,
+              selectedExtensions : empty, 
+              serverRandom : noNonce,
+              clientRandom : noNonce,
+              sessionReadKey : noKey,
+              sessionWriteKey : noKey,
+              peerCertificate : nil,
+
+              --- TLS 1.2-specific features
+              sessionState : empty,
+              sessionResumption : false,
+              failedSessionId : noNonce,
+              secureRenegotiation : false,
+              masterSecret : noNonce,
+              keyExchangeGroup : noGroup,
+              keyExchangeValue : noNonce,
+              certificateType : nil,
+              certificateAlgo : nil,
+              certificateAuth : CA,
+              pendingReadKey : noKey,
+              pendingWriteKey : noKey,
+              prevClientVerifyData : noNonce,
+              prevServerVerifyData : noNonce,
+
+              --- TLS 1.3-specific features
+              earlySecret : noNonce,
+              sharedSecret : noNonce,
+              handshakeSecret : noNonce,
+              applicationSecret : noNonce,
+              certificateRequestContext : noNonce,
+              keyUpdateReq : false,
+              keyUpdateReqType : true,
+              keyUpdateWait : false,
+              pskDHEMode : nil,
+
+              --- runtime metadata
+              transcript : empty,
+              reconnect : false,
+              reconnectInProgress : false,
+              nonceCtr : 0,
+              errorLog : noError,
+
+              serverState : VS-NONE,
+              clientCertificateReq : false,
+              newSessionTicketReq : false,
+              earlyDataWait : false,
+              postClientAuthRequested : false,
+              firstClientHello : empty > .
+
+  eq link1 = < (N1 . CI) to (N2 . SI) : Link | msgQueue : nil > .
+  eq link2 = < (N2 . SI) to (N1 . CI) : Link | msgQueue : nil > .
+  eq system = cobj sobj link1 link2 .
+endom

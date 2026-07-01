@@ -1,0 +1,281 @@
+fmod SCENARIO-RUN-ID is
+  protecting TLS-INITIAL-ID .
+  protecting TLS-CERTIFICATE-ID .
+endfm
+
+smod GEN-THREAT-MODULE is
+  protecting SCENARIO-RUN-ID .
+  protecting SCENARIO-PROPERTY-STRATEGY .
+  protecting BEHAVIOR-DEVIATION-SPECIFICATION-SEMANTICS .
+  protecting TLS-ALL-VALUES .
+  protecting PROTOCOL-VERSION .
+  protecting SET{BehaviorDVSpec} .
+  protecting META-LEVEL .
+
+  var BS : BehaviorDVSpec .
+  var BSS : Set{BehaviorDVSpec} .
+  var PV : ProtocolVersion .
+  vars LABEL RID : Qid .
+  var AP : ActionProposition .
+  var BMODS : Set{BehaviorModification} .
+  var RULE : Rule .
+  var RULES : RuleSet .
+  var IL : ImportList .
+  vars T1 T2 : Term .
+  var AS : AttrSet .
+  var COND : Condition .
+  var SDEFS : StratDefSet .
+  var ETYPE : EventType .
+  var NT : NodeType .
+  var RLABEL : RuleLabel .
+  vars TARGET RID' : Qid .
+  var SEEN : QidSet .
+
+  op genThreatModule : ProtocolVersion Set{BehaviorDVSpec} -> Module .
+ ceq genThreatModule(PV, BSS)
+   = smod 'THREAT-MODULE is
+       protecting 'SCENARIO-RUN-ID .
+       protecting 'SCENARIO-PROPERTY-STRATEGY .
+       protecting 'TLS-CONNECTION-ACTION .
+       protecting 'BEHAVIOR-DEVIATION-SPECIFICATION-SEMANTICS .
+       protecting 'TLS-ALL-VALUES .
+       IL
+       sorts none .
+       none
+       none
+       none
+       none
+       RULES
+       none
+       SDEFS
+     endsm
+  if IL := genProtocolImports(PV)
+  /\ RULES := genThreatRules(PV, BSS)
+  /\ SDEFS := genThreatStrat(PV, BSS) .
+
+  op genProtocolImports : ProtocolVersion -> ImportList .
+  eq genProtocolImports(TLS-12)
+   = (protecting 'ACTION-PROPOSITION-STRATEGY-V2 .)
+     (protecting 'TLS-NORMAL-BEHAVIOR-STRATEGY-V2 .) .
+  eq genProtocolImports(TLS-13)
+   = (protecting 'ACTION-PROPOSITION-STRATEGY-V3 .)
+     (protecting 'TLS-NORMAL-BEHAVIOR-STRATEGY-V3 .) .
+  eq genProtocolImports(PV) = nil [owise] .
+
+  op internalLabel : Qid Qid -> Qid .
+  eq internalLabel(LABEL, RID) = qid(string(LABEL) + "$" + string(RID)) .
+
+  op sourceRuleLabel : Rule -> Qid .
+  eq sourceRuleLabel(rl T1 => T2 [label(RID) AS] .) = RID .
+  eq sourceRuleLabel(crl T1 => T2 if COND [label(RID) AS] .) = RID .
+
+  op publicRuleInfo : Qid RuleInfo -> RuleInfo .
+  eq publicRuleInfo(LABEL, {RLABEL, ETYPE, NT}) = {LABEL, ETYPE, NT} .
+
+  --- ActionProposition conjunction is order-sensitive.  Keep ruleLabel(...)
+  --- leftmost in generated/spec AP terms such as
+  --- ruleLabel(RID) and appliedNode(NT) and featureMap(AMAP); otherwise this
+  --- fast path is missed and the owise case scans all target rules.
+  op selectedTargetRules : ProtocolVersion ActionProposition -> RuleSet .
+  eq selectedTargetRules(PV, ruleLabel(TARGET)) = rulesWithLabel(TARGET, allTargetRules(PV)) .
+  eq selectedTargetRules(PV, ruleLabel(TARGET) and AP) = rulesWithLabel(TARGET, allTargetRules(PV)) .
+  eq selectedTargetRules(PV, AP) = allTargetRules(PV) [owise] .
+
+  op rulesWithLabel : Qid RuleSet -> RuleSet .
+  eq rulesWithLabel(TARGET, RULE RULES)
+   = (if sourceRuleLabel(RULE) == TARGET then RULE else none fi) rulesWithLabel(TARGET, RULES) .
+  eq rulesWithLabel(TARGET, none) = none .
+
+  op genThreatRules : ProtocolVersion Set{BehaviorDVSpec} -> RuleSet .
+  eq genThreatRules(PV, ({LABEL, AP, BMODS}, BSS)) =
+    genThreatRules({LABEL, AP, BMODS}, selectedTargetRules(PV, AP)) genThreatRules(PV, BSS) .
+  eq genThreatRules(PV, empty) = none .
+
+  op genThreatRules : BehaviorDVSpec RuleSet -> RuleSet .
+  eq genThreatRules({LABEL, AP, BMODS}, RULE RULES)
+   = genThreatRule({LABEL, AP, BMODS}, RULE) genThreatRules({LABEL, AP, BMODS}, RULES) .
+  eq genThreatRules(BS, none) = none .
+
+  op genThreatRule : BehaviorDVSpec Rule -> Rule .
+  eq genThreatRule({LABEL, AP, BMODS}, RULE)
+   = setLabel(internalLabel(LABEL, sourceRuleLabel(RULE)),
+              addGuardRule(AP, applyRule(RULE, BMODS))) .
+
+  op genThreatStrat : ProtocolVersion Set{BehaviorDVSpec} -> StratDefSet .
+  eq genThreatStrat(PV, BSS) = genThreatStrat(PV, BSS, none) .
+
+  op genThreatStrat : ProtocolVersion Set{BehaviorDVSpec} QidSet -> StratDefSet .
+ ceq genThreatStrat(PV, ({LABEL, AP, BMODS}, BSS), SEEN) =
+    genThreatStrat({LABEL, AP, BMODS}, RULES, SEEN)
+    genThreatStrat(PV, BSS, addThreatStratKeys(LABEL, RULES, SEEN))
+  if RULES := selectedTargetRules(PV, AP) .
+  eq genThreatStrat(PV, empty, SEEN) = none .
+
+  op addThreatStratKeys : Qid RuleSet QidSet -> QidSet .
+  eq addThreatStratKeys(LABEL, RULE RULES, SEEN)
+   = addThreatStratKeys(LABEL, RULES, internalLabel(LABEL, sourceRuleLabel(RULE)) ; SEEN) .
+  eq addThreatStratKeys(LABEL, none, SEEN) = SEEN .
+
+  op genThreatStrat : BehaviorDVSpec RuleSet QidSet -> StratDefSet .
+  eq genThreatStrat({LABEL, AP, BMODS}, RULE RULES, SEEN)
+   = (if internalLabel(LABEL, sourceRuleLabel(RULE)) in SEEN
+      then none
+      else genExecuteActionDef(LABEL, sourceRuleLabel(RULE))
+      fi)
+     genThreatStrat({LABEL, AP, BMODS}, RULES, internalLabel(LABEL, sourceRuleLabel(RULE)) ; SEEN) .
+  eq genThreatStrat(BS, none, SEEN) = none .
+
+  op genExecuteActionDef : Qid Qid -> StratDefinition .
+  eq genExecuteActionDef(LABEL, RID)
+   = (sd 'executeAction[['AP:ActionProposition]]
+        := 'guardAction[['AP:ActionProposition,
+                         upTerm(publicRuleInfo(LABEL, targetRuleInfo(RID)))]]
+           ; internalLabel(LABEL, RID) [none] {empty}
+        [none] .) .
+endsm
+
+smod GEN-THREAT-MODULE-MIXED is
+  protecting GEN-THREAT-MODULE .
+
+  var BSS : Set{BehaviorDVSpec} .
+  vars LABEL TARGET : Qid .
+  var AP : ActionProposition .
+  var BMODS : Set{BehaviorModification} .
+  var RULES : RuleSet .
+  var SDEFS : StratDefSet .
+  var SEEN : QidSet .
+
+  op genThreatModuleMixed : Set{BehaviorDVSpec} -> Module .
+ ceq genThreatModuleMixed(BSS)
+   = smod 'THREAT-MODULE is
+       protecting 'SCENARIO-RUN-ID .
+       protecting 'SCENARIO-PROPERTY-STRATEGY .
+       protecting 'TLS-CONNECTION-ACTION .
+       protecting 'BEHAVIOR-DEVIATION-SPECIFICATION-SEMANTICS .
+       protecting 'TLS-ALL-VALUES .
+       genProtocolImportsMixed
+       sorts none .
+       none
+       none
+       none
+       none
+       RULES
+       none
+       SDEFS
+     endsm
+  if RULES := genThreatRulesMixed(BSS)
+  /\ SDEFS := genThreatStratMixed(BSS) .
+
+  op genProtocolImportsMixed : -> ImportList .
+  eq genProtocolImportsMixed
+   = (protecting 'ACTION-PROPOSITION-STRATEGY-V2 .)
+     (protecting 'TLS-NORMAL-BEHAVIOR-STRATEGY-V2 .)
+     (protecting 'ACTION-PROPOSITION-STRATEGY-V3 .)
+     (protecting 'TLS-NORMAL-BEHAVIOR-STRATEGY-V3 .) .
+
+  --- Same order-sensitive ruleLabel-leftmost requirement as selectedTargetRules.
+  op selectedTargetRulesMixed : ActionProposition -> RuleSet .
+  eq selectedTargetRulesMixed(ruleLabel(TARGET)) = rulesWithLabel(TARGET, allTargetRules) .
+  eq selectedTargetRulesMixed(ruleLabel(TARGET) and AP) = rulesWithLabel(TARGET, allTargetRules) .
+  eq selectedTargetRulesMixed(AP) = allTargetRules [owise] .
+
+  op genThreatRulesMixed : Set{BehaviorDVSpec} -> RuleSet .
+  eq genThreatRulesMixed(({LABEL, AP, BMODS}, BSS)) =
+    genThreatRules({LABEL, AP, BMODS}, selectedTargetRulesMixed(AP)) genThreatRulesMixed(BSS) .
+  eq genThreatRulesMixed(empty) = none .
+
+  op genThreatStratMixed : Set{BehaviorDVSpec} -> StratDefSet .
+  eq genThreatStratMixed(BSS) = genThreatStratMixed(BSS, none) .
+
+  op genThreatStratMixed : Set{BehaviorDVSpec} QidSet -> StratDefSet .
+ ceq genThreatStratMixed(({LABEL, AP, BMODS}, BSS), SEEN) =
+    genThreatStrat({LABEL, AP, BMODS}, RULES, SEEN)
+    genThreatStratMixed(BSS, addThreatStratKeys(LABEL, RULES, SEEN))
+  if RULES := selectedTargetRulesMixed(AP) .
+  eq genThreatStratMixed(empty, SEEN) = none .
+endsm
+
+view ConfWithAction from TRIV to CONFIGURATION-WITH-ACTION is
+  sort Elt to ConfWithAction .
+endv
+
+view Scen from TRIV to SCENARIO is
+  sort Elt to Scen .
+endv
+
+smod RUN-SCENARIO is
+  protecting GEN-THREAT-MODULE-MIXED .
+  protecting TLS-INITIALIZATION .
+  protecting INTERNAL-FORMAL-SCENARIO-GENERATOR .
+  protecting LIST{ConfWithAction} .
+  protecting LIST*{Scen} .
+  protecting META-LEVEL .
+
+  vars CWA CWA0 CWA1 : ConfWithAction .
+  var CWAL : List{ConfWithAction} .
+  var PV : ProtocolVersion .
+  var BSS : Set{BehaviorDVSpec} .
+  vars TCONF TCONF' : TLSConfiguration .
+  var SPR : ScenarioProperty .
+  var MODULE : Module .
+  var RESULT : Term .
+  var TYPE : Type .
+  var N : Nat .
+  var CONF : Configuration .
+  var TI : TId .
+  var OIDL : List{TId} .
+  var ACTL : List{FormalAction} .
+
+  sort ConfWithAction? .
+  subsort ConfWithAction < ConfWithAction? .
+  op errorConf : -> ConfWithAction? [ctor] .
+
+  op initializeCWA : TLSConfiguration ConfWithAction -> ConfWithAction .
+  eq initializeCWA(TCONF, {CONF | OIDL : ACTL}) = {initialize(TCONF, CONF) | OIDL : ACTL} .
+
+  op getTesterId : TLSConfiguration -> TId .
+  eq getTesterId(TCONF tester(TI) TCONF') = TI .
+
+  op toTesterScens : TId List{ConfWithAction} -> List{Scen} .
+  eq toTesterScens(TI, CWA CWAL) = append([gen(actions(TI, CWA))], toTesterScens(TI, CWAL)) .
+  eq toTesterScens(TI, nil) = [] .
+
+  op runScenario : ProtocolVersion ConfWithAction TLSConfiguration Set{BehaviorDVSpec} ScenarioProperty -> List{Scen} .
+  op runScenario : ProtocolVersion ConfWithAction TLSConfiguration Set{BehaviorDVSpec} ScenarioProperty Nat -> List{Scen} .
+  op runScenarioCWA : ProtocolVersion ConfWithAction TLSConfiguration Set{BehaviorDVSpec} ScenarioProperty Nat -> List{ConfWithAction} .
+  op runScenarioMixed : ConfWithAction TLSConfiguration Set{BehaviorDVSpec} ScenarioProperty -> List{Scen} .
+  op runScenarioMixed : ConfWithAction TLSConfiguration Set{BehaviorDVSpec} ScenarioProperty Nat -> List{Scen} .
+  op runScenarioMixedCWA : ConfWithAction TLSConfiguration Set{BehaviorDVSpec} ScenarioProperty Nat -> List{ConfWithAction} .
+
+  eq runScenario(PV, CWA0, TCONF, BSS, SPR) = runScenario(PV, CWA0, TCONF, BSS, SPR, 0) .
+  eq runScenario(PV, CWA0, TCONF, BSS, SPR, N)
+   = toTesterScens(getTesterId(TCONF), runScenarioCWA(PV, CWA0, TCONF, BSS, SPR, N)) .
+
+  eq runScenarioMixed(CWA0, TCONF, BSS, SPR) = runScenarioMixed(CWA0, TCONF, BSS, SPR, 0) .
+  eq runScenarioMixed(CWA0, TCONF, BSS, SPR, N)
+   = toTesterScens(getTesterId(TCONF), runScenarioMixedCWA(CWA0, TCONF, BSS, SPR, N)) .
+
+ ceq runScenarioCWA(PV, CWA0, TCONF, BSS, SPR, N)
+   = CWA runScenarioCWA(PV, CWA0, TCONF, BSS, SPR, s N)
+  if MODULE := genThreatModule(PV, BSS)
+  /\ CWA1 := initializeCWA(TCONF, CWA0)
+  /\ {RESULT, TYPE} := metaSrewrite(MODULE, upTerm(CWA1), 'scenarioProperty[[upTerm(SPR)]], breadthFirst, N)
+  /\ CWA := downTerm(RESULT, errorConf) .
+
+ ceq runScenarioCWA(PV, CWA0, TCONF, BSS, SPR, N) = nil
+  if MODULE := genThreatModule(PV, BSS)
+  /\ CWA1 := initializeCWA(TCONF, CWA0)
+  /\ failure == metaSrewrite(MODULE, upTerm(CWA1), 'scenarioProperty[[upTerm(SPR)]], breadthFirst, N) .
+
+ ceq runScenarioMixedCWA(CWA0, TCONF, BSS, SPR, N)
+   = CWA runScenarioMixedCWA(CWA0, TCONF, BSS, SPR, s N)
+  if MODULE := genThreatModuleMixed(BSS)
+  /\ CWA1 := initializeCWA(TCONF, CWA0)
+  /\ {RESULT, TYPE} := metaSrewrite(MODULE, upTerm(CWA1), 'scenarioProperty[[upTerm(SPR)]], breadthFirst, N)
+  /\ CWA := downTerm(RESULT, errorConf) .
+
+ ceq runScenarioMixedCWA(CWA0, TCONF, BSS, SPR, N) = nil
+  if MODULE := genThreatModuleMixed(BSS)
+  /\ CWA1 := initializeCWA(TCONF, CWA0)
+  /\ failure == metaSrewrite(MODULE, upTerm(CWA1), 'scenarioProperty[[upTerm(SPR)]], breadthFirst, N) .
+endsm

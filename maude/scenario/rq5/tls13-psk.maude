@@ -1,0 +1,16 @@
+load common.maude
+load ../rfc/psk.maude
+
+smod RQ5-TLS13-PSK is
+  protecting RFC-PSK .
+  protecting RQ5-COMMON .
+
+  op rq5Tls13PskDheConf : -> TLSConfiguration .
+  eq rq5Tls13PskDheConf = initConf-psk-dhe tester(N2 . SI) target(N1 . CI) .
+
+  op rq5Tls13PskDheHrrConf : -> TLSConfiguration .
+  eq rq5Tls13PskDheHrrConf = initConf-psk-dhe-hrr tester(N2 . SI) target(N1 . CI) .
+
+  op rq5Tls13PskKeConf : -> TLSConfiguration .
+  eq rq5Tls13PskKeConf = initConf-psk-ke tester(N2 . SI) target(N1 . CI) .
+endsm

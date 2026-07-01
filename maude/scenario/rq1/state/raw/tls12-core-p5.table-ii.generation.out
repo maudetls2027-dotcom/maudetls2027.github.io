@@ -1,0 +1,12 @@
+		     \||||||||||||||||||/
+		   --- Welcome to Maude ---
+		     /||||||||||||||||||\
+	     Maude 3.4 built: Mar 15 2024 20:07:12
+	     Copyright 1997-2024 SRI International
+		   Sun Jun 28 07:49:33 2026
+==========================================
+reduce in RQ1-TLS12-CORE : rq1CountUpTo(TLS-12, initialCWA, rq1Tls12CoreConf,
+    rq1Tls12CoreP5Set, rq1Tls12CoreP5Property, 0, 2) .
+rewrites: 7954 in 432ms cpu (435ms real) (18412 rewrites/second)
+result NzNat: 1
+Bye.

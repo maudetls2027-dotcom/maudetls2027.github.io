@@ -1,0 +1,251 @@
+fmod PROTOCOL-VERSION? is
+  including PROTOCOL-VERSION .
+  
+  sort ProtocolVersion? .
+  subsort ProtocolVersion < ProtocolVersion? .
+  op noVersion : -> ProtocolVersion? [ctor] .
+endfm
+
+fmod CIPHER-SUITE? is
+  including CIPHER-SUITE .
+
+  sort CipherSuite? .
+  subsort CipherSuite < CipherSuite? .
+  op noSuite : -> CipherSuite? [ctor] .
+endfm
+
+fmod FINITE-FIELD? is
+  including FINITE-FIELD .
+ 
+  sort FiniteField? .
+  subsort FiniteField < FiniteField? .
+  op noFField : -> FiniteField? [ctor] .
+endfm
+
+fmod COMPRESSION-METHOD? is
+  including COMPRESSION-METHOD .
+
+  sort CompressionMethod? .
+  subsort CompressionMethod < CompressionMethod? .
+  op noComp : -> CompressionMethod? [ctor] .
+endfm
+
+fmod KEY? is
+  including KEY .
+
+  sort Key? .
+  subsort Key < Key? .
+  op noKey : -> Key? [ctor] .
+endfm
+
+fmod NAMED-GROUP? is
+  including NAMED-GROUP .
+
+  sort NamedGroup? .
+  subsort NamedGroup < NamedGroup? .
+  op noGroup : -> NamedGroup? [ctor] .
+endfm
+
+fmod NAMED-CURVE? is
+  including NAMED-CURVE .
+
+  sort NamedCurve? .
+  subsort NamedCurve < NamedCurve? .
+  op noCurve : -> NamedCurve? [ctor] .
+endfm
+
+fmod ALERT-DESCRIPTION? is
+  including ALERT .
+
+  sort AlertDescription? .
+  subsort AlertDescription < AlertDescription? .
+  op noError : -> AlertDescription? [ctor] .
+endfm
+
+fmod PSK-INFO is
+  protecting TICKET-IDENTIFIER .
+  protecting NONCE .
+  protecting CIPHER-SUITE .
+
+  sort PSKInfo .
+  op {_,_,_} : TicketId Nonce CipherSuite -> PSKInfo .
+endfm
+
+view PSKInfo from TRIV to PSK-INFO is
+  sort Elt to PSKInfo .
+endv
+
+fmod CONNECT-STATE is
+  protecting KEY? .
+  protecting CIPHER-SUITE? .
+  protecting COMPRESSION-METHOD? .
+  protecting PRE-MASTER-SECRET .
+  protecting KEY-DERIVATION .
+  protecting NONCE? .
+
+  vars MS MS' : MasterSecret .
+  vars CRANDOM CRANDOM' SRANDOM SRANDOM' HMAC HMAC' : Nonce .
+  vars TI TI' : TId .
+  vars N N' : Nat .
+
+  sort ConnectState .
+  op initConnectState : -> ConnectState [ctor] .
+  --- Session Key, MAC Key, CipherSpec, CompressionMethod Initialization Vector, Sequence Number
+  op {_,_,_,_,_,_} : Key? Key? CipherSuite? CompressionMethod? Nonce? Nat -> ConnectState [ctor] .
+
+  --- Initialization Vector
+  op iv : MasterSecret Nonce Nonce -> Nonce . 
+endfm
+
+view ConnectState from TRIV to CONNECT-STATE is
+  sort Elt to ConnectState .
+endv
+
+--- TLS 1.2 session resumption is done using 'sessionId'.  
+--- The server can maintain a set of session states.  
+--- The client also maintains its own session state.
+fmod SESSION-INFO is
+  protecting CIPHER-SUITE? .
+  protecting COMPRESSION-METHOD? .
+  protecting LIST{Certificate} .
+  protecting NONCE? .
+
+  sort SessionInfo .                                          --- Master secret
+  op {_,_,_,_} : List{Certificate} CompressionMethod? CipherSuite? Nonce? -> SessionInfo [ctor] .
+endfm
+
+view SessionInfo from TRIV to SESSION-INFO is
+  sort Elt to SessionInfo .
+endv
+
+fmod SESSION-STATE is
+  protecting SESSION-INFO .
+  protecting MAP{Nonce,SessionInfo} * (sort Map{Nonce,SessionInfo} to SessionState) .
+  protecting NONCE? .
+
+  var SID : Nonce .
+  var SINFO : SessionInfo .
+  var SESS : SessionState .
+  vars CERTL : List{Certificate} .
+  vars CM? : CompressionMethod? .
+  vars CS? : CipherSuite? .
+  vars MS? : Nonce? .
+
+  op $hasMapping : SessionState Nonce? -> Bool .
+  eq $hasMapping(SSS:SessionState, noNonce) = true .
+
+  op sessionState : Nonce? List{Certificate} CompressionMethod? CipherSuite? Nonce? -> SessionState .
+  eq sessionState(noNonce, CERTL, CM?, CS?, MS?) = empty .
+  eq sessionState(SID, CERTL, CM?, CS?, MS?) = insert(SID, {CERTL, CM?, CS?, MS?}, empty) [owise] .
+
+  op invalidateSession : SessionState Nonce? -> SessionState .
+  eq invalidateSession(SESS, noNonce) = SESS .
+  eq invalidateSession((SID |-> SINFO, SESS), SID) = invalidateSession(SESS, SID) .
+  eq invalidateSession(SESS, SID) = SESS [owise] .
+endfm
+
+fmod TLS-OBJECT-ID is
+  protecting TLS-COMPONENT-ID .
+
+  op _._ : TId TId -> TId [ctor] .
+endfm
+
+--- Do not remove the 'dhP', and 'dhG' attributes.  
+--- In TLS 1.2, the server sends these values in the 'ServerKeyExchange' message, 
+--- and the client responds with a 'ClientKeyExchange' message based on them.  
+--- In TLS 1.3, these values are replaced by the 'supported_groups' extensions.  
+omod TLS-OBJECT is
+  protecting TLS-MESSAGE-CONTENT .
+  protecting TLS-OBJECT-ID .
+  protecting SERVER-V2-STATE .
+  protecting CLIENT-V2-STATE .
+  protecting SERVER-V3-STATE .
+  protecting CLIENT-V3-STATE .
+  protecting CONNECT-STATE .
+  protecting SESSION-STATE .
+  protecting EXTENSION .
+  protecting PROTOCOL-VERSION? .
+  protecting NAMED-GROUP? .
+  protecting SET{Key} .
+  protecting SESSION-STATE .
+  protecting FINITE-FIELD? .
+  protecting ALERT-DESCRIPTION? .
+  protecting LIST{PSKInfo} .
+  protecting LIST{PreSharedKeyExchangeMode} .
+
+  subsort TId < Oid .
+  class TLS | target : TId,
+
+              --- supported features
+              cipherSuites : List{CipherSuite},
+              sessionId : Nonce?,
+              publicKey : Set{Key},
+              privateKey : Set{Key},
+              certificates : List{Certificate},
+              compressions : List{CompressionMethod},
+              extensions : Extension,
+              pskInfo : List{PSKInfo},
+
+              --- selected session parameters
+              selectedVersion : ProtocolVersion?,
+              selectedCipherSuite : CipherSuite?,
+              selectedCompression : CompressionMethod?,
+              selectedPSK : Nonce?,
+              selectedExtensions : Extension,                     --- chosen extension in ClientHello
+              serverRandom : Nonce?,
+              clientRandom : Nonce?,
+              sessionReadKey : Key?,
+              sessionWriteKey : Key?,
+              peerCertificate : List{Certificate},
+
+              --- TLS 1.2-specific features
+              sessionState : SessionState,
+              sessionResumption : Bool,
+              failedSessionId : Nonce?,
+              secureRenegotiation : Bool,
+              masterSecret : Nonce?,
+              keyExchangeGroup : NamedGroup?,
+              keyExchangeValue : Nonce?,
+              certificateType : List{CertificateType},
+              certificateAlgo : List{SignatureAlgorithm},
+              certificateAuth : List{TId},
+              pendingReadKey : Key?,
+              pendingWriteKey : Key?,
+              prevClientVerifyData : Nonce?,
+              prevServerVerifyData : Nonce?,
+
+              --- TLS 1.3-specific features
+              earlySecret : Nonce?,
+              sharedSecret : Nonce?,
+              handshakeSecret : Nonce?,
+              applicationSecret : Nonce?,
+              certificateRequestContext : Nonce?,
+              keyUpdateReq : Bool,
+              keyUpdateReqType : Bool,
+              keyUpdateWait : Bool,
+              pskDHEMode : List{PreSharedKeyExchangeMode},
+
+              --- runtime metadata
+              transcript : MsgContent,
+              reconnect : Bool,
+              reconnectInProgress : Bool,
+              nonceCtr : Nat,
+              errorLog : AlertDescription? .
+
+  class Client | clientState : ClientState,
+                 certificateRequested : Bool,
+                 newSessionTicketWait : Bool,
+                 earlyDataReq : Bool,
+                 postClientAuthReq : Bool,
+                 clientRenegotiation : Bool .
+
+  class Server | serverState : ServerState,
+                 clientCertificateReq : Bool,
+                 newSessionTicketReq : Bool,
+                 earlyDataWait : Bool,
+                 postClientAuthRequested : Bool,
+                 firstClientHello : MsgContent .
+
+  subclass Client Server < TLS .
+
+endom

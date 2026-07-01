@@ -1,0 +1,69 @@
+
+fmod CLIENT-STATE is
+  sort ClientState .
+  op VC-NONE : -> ClientState [ctor] .
+endfm
+
+fmod CLIENT-V2-STATE is
+  including CLIENT-STATE .
+
+  sort ClientV2State .
+  subsort ClientV2State < ClientState .
+
+  ops V2C-NONE      V2C-INIT      V2C-CT-HLO         V2C-SRV-HLO 
+      V2C-SRV-CERT  V2C-SRV-KEY-X      V2C-CERT-REQ  V2C-SRV-HLO-DONE 
+      V2C-CT-CERT   V2C-CT-KEY-X       V2C-CERT-VF   V2C-CT-CHG-CSPEC 
+      V2C-CT-FIN    V2C-SRV-CHG-CSPEC  V2C-SRV-FIN   V2C-DONE V2C-CLOSED V2C-ERROR
+      V2C-NONE : -> ClientV2State [ctor] .
+endfm
+
+fmod CLIENT-V3-STATE is
+  including CLIENT-STATE .
+
+  sort ClientV3State .
+  subsort ClientV3State < ClientState .
+
+  ops V3C-NONE        V3C-INIT        V3C-CT-HLO      V3C-SRV-HLO 
+      V3C-SRV-ENCEXTS V3C-CERT-REQ    V3C-SRV-CERT    V3C-SRV-CERT-VF  
+      V3C-SRV-FIN     V3C-CT-CERT     V3C-CT-CERT-VF  V3C-CT-FIN  
+      V3C-ERROR       V3C-EARLY-APP   V3C-END-EARLY-DATA V3C-SEC-INIT : -> ClientV3State [ctor] .
+
+  --- Post handshake
+  ops V3C-KEY-RCV V3C-KEY-RES : -> ClientV3State [ctor] .
+
+  ops V3C-DONE V3C-CLOSED : -> ClientV3State [ctor] .
+endfm
+
+fmod SERVER-STATE is
+  sort ServerState .
+  op VS-NONE : -> ServerState [ctor] .
+endfm
+
+fmod SERVER-V2-STATE is
+  including SERVER-STATE .
+
+  sort ServerV2State .
+  subsort ServerV2State < ServerState .
+
+  ops V2S-NONE      V2S-READY     V2S-CT-HLO         V2S-CT-HLO-SESS V2S-SRV-HLO 
+      V2S-SRV-CERT  V2S-SRV-KEY-X      V2S-CERT-REQ    V2S-HLO-DONE 
+      V2S-CT-CERT   V2S-CT-KEY-X       V2S-CT-CERT-VF  V2S-CT-CHG-CSPEC 
+      V2S-CT-FIN    V2S-SRV-CHG-CSPEC  V2S-SRV-FIN     V2S-DONE V2S-CLOSED V2S-ERROR : -> ServerV2State [ctor] .
+endfm
+
+fmod SERVER-V3-STATE is
+  including SERVER-STATE .
+
+  sort ServerV3State .
+  subsort ServerV3State < ServerState .
+
+  ops V3S-NONE        V3S-READY       V3S-CT-HLO      V3S-CT-HLO-REQ 
+      V3S-SRV-HLO     V3S-SRV-ENCEXTS V3S-CERT-REQ   V3S-SRV-CERT    
+      V3S-SRV-CERT-VF V3S-SRV-FIN     V3S-CT-CERT    V3S-CT-CERT-VF  
+      V3S-CT-FIN      V3S-ERROR       V3S-EARLY-APP  V3S-END-EARLY-DATA V3S-CT-POST   V3S-KEY-UPT : -> ServerV3State [ctor] .
+
+  --- Post handshake
+  ops V3S-NEW-TIC V3S-POST-AUTH V3S-KEY-RCV V3S-KEY-RES : -> ServerV3State [ctor] .
+
+  ops V3S-DONE V3S-CLOSED : -> ServerV3State .
+endfm

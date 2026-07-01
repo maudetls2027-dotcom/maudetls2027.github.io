@@ -1,0 +1,13 @@
+		     \||||||||||||||||||/
+		   --- Welcome to Maude ---
+		     /||||||||||||||||||\
+	     Maude 3.4 built: Mar 15 2024 20:07:12
+	     Copyright 1997-2024 SRI International
+		   Sun Jun 28 11:57:04 2026
+==========================================
+reduce in RQ1-TLS13-ADDITIONAL-CORE : rq1CountUpTo(TLS-13, initialCWA,
+    rq1Tls13AdditionalCoreConf, rq1Tls13AdditionalCoreP5Set,
+    rq1Tls13AdditionalCoreP5Property, 0, 4) .
+rewrites: 190134 in 5008ms cpu (5009ms real) (37966 rewrites/second)
+result NzNat: 3
+Bye.

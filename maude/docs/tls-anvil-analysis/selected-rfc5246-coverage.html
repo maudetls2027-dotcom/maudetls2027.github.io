@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>selected-rfc5246-coverage.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> or <div class="page"></div> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="selected-tls-anvil-rfc-5246-coverage">Selected TLS-Anvil RFC 5246 Coverage</h1>
+<p>This note covers the TLS-Anvil items selected on 2026-06-13.  I inspected the
+extracted <code>results.zip</code> contents under
+<code>/private/tmp/tlsanvil-results-20260613-codex</code>.  The archive did not contain
+PCAP/PCAPNG files; the concrete evidence below therefore comes from
+<code>_containerResult.json</code>, <code>*_testsuite.log</code>, and <code>*_tlsattacker.log</code>.</p>
+<h2 id="observed-tls-anvil-results">Observed TLS-Anvil Results</h2>
+<table>
+<thead>
+<tr>
+<th>TLS-Anvil item</th>
+<th>Affected library/version in results</th>
+<th>Observed message flow or value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sendAdditionalExtension</code></td>
+<td>GnuTLS 3.7.0 client, MatrixSSL 4.3.0 client, s2n 0.10.24 client</td>
+<td>Client was expected to send a fatal alert but continued with <code>ClientKeyExchange</code>, <code>ChangeCipherSpec</code>, and <code>Finished</code> or left the socket open.  The extra extension type was not serialized in the JSON logs.</td>
+</tr>
+<tr>
+<td><code>selectUnproposedCompressionMethod</code></td>
+<td>s2n 0.10.24 client</td>
+<td>ServerHello selected unoffered compression methods such as <code>DEFLATE</code> and <code>LZS</code>; client did not produce the expected fatal alert.</td>
+</tr>
+<tr>
+<td><code>acceptsMissingSignature</code></td>
+<td>s2n 0.10.24 client</td>
+<td>ServerKeyExchange signature field omitted; client accepted or kept the socket open.</td>
+</tr>
+<tr>
+<td><code>invalidServerKeyExchangeSignature</code></td>
+<td>s2n 0.10.24 client</td>
+<td>Invalid SKE signatures included bitmask/bit-position mutations such as <code>SIGNATURE_BITMASK=0,63,69,101,127,255,511</code> and <code>BIT_POSITION=0..7</code>.</td>
+</tr>
+<tr>
+<td><code>acceptsUnproposedNamedGroup</code></td>
+<td>s2n 0.10.24 client</td>
+<td>SKE used groups not offered by the client, including Brainpool, X25519/X448, and SECP/SECT families.</td>
+</tr>
+<tr>
+<td><code>clientMustSendCertMsg</code></td>
+<td>MatrixSSL 4.3.0 client</td>
+<td>After <code>CertificateRequest</code>, the client did not send <code>Certificate</code>; failed cases included <code>RECORD_LENGTH=1</code> and groups <code>SECP256R1</code>, <code>SECP384R1</code>, <code>SECP521R1</code>.</td>
+</tr>
+<tr>
+<td><code>sendNotDefinedRecordTypesWithServerHello</code>, <code>sendNotDefinedRecordTypesWithCCSAndFinished</code></td>
+<td>s2n 0.10.24 client; MatrixSSL 4.3.0 client/server; wolfSSL 4.5.0 server</td>
+<td>Undefined record content-type byte was not serialized.  Expected <code>unexpected_message</code>; actual behavior was no alert, socket open, decode error, or an unplanned workflow.</td>
+</tr>
+<tr>
+<td><code>acceptAnyRecordVersionNumber</code></td>
+<td>MatrixSSL 4.3.0 server</td>
+<td>Test used arbitrary <code>{03,XX}</code> record-layer ClientHello versions; exact <code>XX</code> was not serialized.  Server returned fatal <code>illegal_parameter</code>.</td>
+</tr>
+<tr>
+<td><code>versionGreaterThanSupportedByServer</code></td>
+<td>MatrixSSL 4.3.0 server, wolfSSL 4.5.0 server</td>
+<td>TLS-Attacker log records ClientHello version <code>03 0F</code>; MatrixSSL returned fatal <code>protocol_version</code> or <code>decode_error</code>.</td>
+</tr>
+<tr>
+<td><code>includeUnknownExtension</code>, <code>leaveOutExtensions</code>, <code>offerManyCipherSuites</code></td>
+<td>MatrixSSL 4.3.0 server, wolfSSL debug-x server</td>
+<td>Unknown extension type was not serialized.  <code>offerManyCipherSuites</code> included unknown/private suite values such as <code>DF 00..DF C5</code>, <code>DF FD</code>, <code>DF FF</code>; servers often produced decode errors or incomplete workflows.</td>
+</tr>
+<tr>
+<td><code>checkExtensions</code>, <code>serverRandom</code></td>
+<td>MatrixSSL 4.3.0 server, wolfSSL 4.5.0 server</td>
+<td>ServerHello field/random failures were reported, but the concrete bad random value was not serialized.</td>
+</tr>
+<tr>
+<td><code>offerManyAlgorithms</code></td>
+<td>LibreSSL 3.2.3 server; MatrixSSL 4.3.0 server; wolfSSL 4.5.0/debug-x server</td>
+<td>Many SignatureAndHashAlgorithm values were offered; concrete full list was usually not serialized.  Unknown sig/hash cases logged values like <code>03 0F</code>.</td>
+</tr>
+<tr>
+<td><code>includeUnknownSignatureAndHashAlgorithm</code></td>
+<td>MatrixSSL 4.3.0 server, wolfSSL 4.5.0 server</td>
+<td>Unknown SignatureAndHashAlgorithm value logged as <code>03 0F</code>; server often returned decode/protocol errors or did not complete the planned workflow.</td>
+</tr>
+<tr>
+<td><code>signatureIsValid</code></td>
+<td>MatrixSSL 4.3.0 server, wolfSSL 4.5.0/debug-x server</td>
+<td>TLS-Anvil expected a valid signed SKE path; affected runs did not execute the expected workflow to completion.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="existing-scenariorfc-coverage">Existing Scenario/RFC Coverage</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Existing coverage before this change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sendAdditionalExtension</code></td>
+<td>Covered for model-known TLS 1.2 ServerHello extensions by <code>scen25</code>-<code>scen31</code> in <code>scenario/rfc/5246-core.maude</code>, backed by ServerHello extension RFC labels.</td>
+</tr>
+<tr>
+<td><code>selectUnproposedCompressionMethod</code></td>
+<td>Covered by <code>scen24</code>, which selects <code>zlib-compression</code> even though the client offered only <code>no-compression</code>.</td>
+</tr>
+<tr>
+<td><code>invalidServerKeyExchangeSignature</code></td>
+<td>RFC label existed, but there was no RFC scenario.  Added as <code>scen46</code>.</td>
+</tr>
+<tr>
+<td><code>acceptsUnproposedNamedGroup</code></td>
+<td>RFC label existed, but there was no TLS 1.2 SKE scenario.  Added as <code>scen51</code>.</td>
+</tr>
+<tr>
+<td><code>clientMustSendCertMsg</code></td>
+<td>Happy-flow client-auth scenarios require the message, but there was no omission scenario.  Added as <code>scen47</code>.</td>
+</tr>
+<tr>
+<td><code>versionGreaterThanSupportedByServer</code></td>
+<td>Covered only when interpreted as the ClientHello/ServerHello handshake protocol field, e.g. <code>scen5</code>.  Record-layer version compatibility is not covered.</td>
+</tr>
+<tr>
+<td><code>leaveOutExtensions</code></td>
+<td>Covered for model-known mandatory/required extensions, e.g. <code>scen8</code>, <code>scen44</code>, <code>scen45</code>.</td>
+</tr>
+<tr>
+<td><code>offerManyCipherSuites</code></td>
+<td>Existing corpus had many single substitutions, not one large offered vector.  Added as <code>scen48</code>.</td>
+</tr>
+<tr>
+<td><code>checkExtensions</code></td>
+<td>Covered for model-known duplicate/forbidden/unrequested extension checks, mainly <code>scen25</code>-<code>scen31</code>.</td>
+</tr>
+<tr>
+<td><code>offerManyAlgorithms</code></td>
+<td>Existing corpus had one-at-a-time additions, not one large <code>signature_algorithms</code> vector.  Added as <code>scen49</code>.</td>
+</tr>
+<tr>
+<td><code>signatureIsValid</code></td>
+<td>TLS 1.3 CertificateVerify signature scenarios existed.  Added a TLS 1.2 SKE valid-signature reachability scenario as <code>scen50</code>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="added-rfc-5246-scenarios">Added RFC 5246 Scenarios</h2>
+<p>These were added to <code>maude/scenario/rfc/5246-core.maude</code>.</p>
+<table>
+<thead>
+<tr>
+<th>New scen</th>
+<th>TLS-Anvil item</th>
+<th>Behavior deviation / property</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scen46</code></td>
+<td><code>invalidServerKeyExchangeSignature</code></td>
+<td><code>setM(#signature, mv[noNonce])</code> on <code>buildServerKeyExchangeV2</code>; client rejects with <code>decrypt-error</code>.</td>
+</tr>
+<tr>
+<td><code>scen47</code></td>
+<td><code>clientMustSendCertMsg</code></td>
+<td><code>skip()</code> on <code>buildClientCertificateV2</code>; server rejects the following <code>ClientKeyExchange</code> with <code>unexpected-message</code>.</td>
+</tr>
+<tr>
+<td><code>scen48</code></td>
+<td><code>offerManyCipherSuites</code></td>
+<td>Adds a larger cipher-suite vector while preserving <code>TLS-ECDHE-ECDSA-WITH-AES-128-GCM-SHA256</code>; handshake reaches both closed states.</td>
+</tr>
+<tr>
+<td><code>scen49</code></td>
+<td><code>offerManyAlgorithms</code></td>
+<td>Replaces <code>signature_algorithms</code> with a larger list including <code>{ecdsa,sha256}</code>; handshake reaches both closed states.</td>
+</tr>
+<tr>
+<td><code>scen50</code></td>
+<td><code>signatureIsValid</code></td>
+<td>Baseline valid TLS 1.2 SKE signature path; SKE is processed and the handshake closes normally.</td>
+</tr>
+<tr>
+<td><code>scen51</code></td>
+<td><code>acceptsUnproposedNamedGroup</code></td>
+<td>After <code>processClientHelloV2</code>, sets server selected supported group to <code>secp384r1</code>; generated SKE is rejected with <code>illegal-parameter</code> because the client offered <code>secp256r1</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Verification command:</p>
+<pre class="hljs"><code><div><span class="hljs-built_in">printf</span> <span class="hljs-string">&#x27;red runScenario(TLS-12, initialCWA, initConf1, behaviorDeviationSpecification46, scenarioProperty46) .\nred runScenario(TLS-12, initialCWA, initConf1, behaviorDeviationSpecification47, scenarioProperty47) .\nred runScenario(TLS-12, initialCWA, initConf1, behaviorDeviationSpecification48, scenarioProperty48) .\nred runScenario(TLS-12, initialCWA, initConf1, behaviorDeviationSpecification49, scenarioProperty49) .\nred runScenario(TLS-12, initialCWA, initConf1, behaviorDeviationSpecification50, scenarioProperty50) .\nred runScenario(TLS-12, initialCWA, initConf1, behaviorDeviationSpecification51, scenarioProperty51) .\n&#x27;</span> \
+  | ./maude/maude-3.5.1/maude -no-advise requirements/5246-core.maude
+</div></code></pre>
+<p>All six reductions returned <code>NeList{Scen}</code>.  I also checked representative
+tester/target generation: client-side TLS-Anvil items with <code>tester(N2 . SI) target(N1 . CI)</code> generate server-side test actions, and server-side items with
+<code>tester(N1 . CI) target(N2 . SI)</code> generate client-side test actions.</p>
+<h2 id="not-immediately-addable">Not Immediately Addable</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Why not immediate</th>
+<th>Minimal model change plan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>acceptsMissingSignature</code></td>
+<td><code>#signature</code> can be corrupted, but <code>remove(#signature)</code> is not implemented.  The TLS 1.2 SKE RFC predicate also returns true when the signature field is absent.</td>
+<td>Add <code>remove(#signature)</code> semantics for <code>signature(...)</code>; add an RFC 5246 SKE label requiring a signature for DHE/ECDHE authenticated suites; map the alert to <code>decrypt-error</code> or the RFC-appropriate fatal alert; then add the missing-signature scenario.</td>
+</tr>
+<tr>
+<td><code>sendNotDefinedRecordTypesWith*</code></td>
+<td><code>ContentType</code> is a closed sort with only <code>handshake</code>, <code>change-cipher-spec</code>, <code>alert</code>, and <code>application-data</code>.</td>
+<td>Add an unknown/invalid content-type constructor, include it in all-values and generation mappings, and add record-layer RFC checks that reject undefined types before message-specific parsing.</td>
+</tr>
+<tr>
+<td><code>acceptAnyRecordVersionNumber</code></td>
+<td><code>#version</code> can mutate the record version, but TLS 1.2 record-version compatibility rules are not checked as RFC properties.  Arbitrary <code>{03,XX}</code> versions are not modeled.</td>
+<td>Add record-layer version predicates for TLS 1.0/1.1/1.2 compatibility, extend <code>ProtocolVersion</code> or add raw record-version values if SSL3/arbitrary bytes are needed, and wire the checks into receive rules.</td>
+</tr>
+<tr>
+<td><code>includeUnknownExtension</code></td>
+<td>Unknown/GREASE extension IDs are not represented; only known extension constructors can be added or removed.</td>
+<td>Add <code>unknown-extension(Nat)</code> or GREASE extension constructors, update duplicate/extension traversal helpers, add client/server ignore-or-reject RFC rules, and expose Java scenario-generation mappings if needed.</td>
+</tr>
+<tr>
+<td><code>serverRandom</code></td>
+<td>Randoms are symbolic <code>Nonce</code> values; byte patterns, timestamp structure, zero/random-quality checks are not modeled.</td>
+<td>Add symbolic bad-random constructors such as <code>zeroRandom</code>, <code>gmtUnixTimePattern</code>, or <code>repeatedRandom</code>; add ServerHello random validation properties if these are to be treated as scenario properties.</td>
+</tr>
+<tr>
+<td><code>includeUnknownSignatureAndHashAlgorithm</code></td>
+<td>Signature algorithms are a closed <code>{AuthenticationAlgorithm, HashAlgorithm}</code> vocabulary; true <code>03 0F</code> or GREASE values cannot be represented.</td>
+<td>Add unknown auth/hash or raw signature-scheme constructors, update <code>authC</code>/<code>hashC</code> helpers and selection predicates, and map them in all-values / Java generation.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="classification-summary">Classification Summary</h2>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th>Classification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Already covered by existing RFC scenarios</td>
+<td><code>sendAdditionalExtension</code> for known extensions, <code>selectUnproposedCompressionMethod</code>, known <code>leaveOutExtensions</code>, known <code>checkExtensions</code>, handshake-field <code>versionGreaterThanSupportedByServer</code>.</td>
+</tr>
+<tr>
+<td>Added now</td>
+<td><code>invalidServerKeyExchangeSignature</code>, <code>acceptsUnproposedNamedGroup</code>, <code>clientMustSendCertMsg</code>, <code>offerManyCipherSuites</code>, <code>offerManyAlgorithms</code>, TLS 1.2 SKE <code>signatureIsValid</code>.</td>
+</tr>
+<tr>
+<td>Requires model work</td>
+<td><code>acceptsMissingSignature</code>, undefined record content types, exact record-version compatibility, true unknown extensions, concrete <code>serverRandom</code> checks, true unknown signature/hash algorithms.</td>
+</tr>
+</tbody>
+</table>
+
+</body>
+</html>

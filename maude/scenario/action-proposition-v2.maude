@@ -1,0 +1,35 @@
+smod ACTION-PROPOSITION-STRATEGY-V2 is
+  protecting CONNECT-V2-API .
+  protecting ACCEPT-V2-API .
+  protecting ACTION-PROPOSITION-STRATEGY .
+
+  var AP : ActionProposition .
+
+  sd executeAction(AP) := guardAction(AP, {'buildClientHelloV2, send, client}) ; buildClientHelloV2 .
+  sd executeAction(AP) := guardAction(AP, {'buildClientCertificateV2, send, client}) ; buildClientCertificateV2 .
+  sd executeAction(AP) := guardAction(AP, {'buildClientKeyExchangeV2, send, client}) ; buildClientKeyExchangeV2 .
+  sd executeAction(AP) := guardAction(AP, {'buildClientCertificateVerifyV2, send, client}) ; buildClientCertificateVerifyV2 .
+  sd executeAction(AP) := guardAction(AP, {'buildClientChangeCipherSpecV2, send, client}) ; buildClientChangeCipherSpecV2 .
+  sd executeAction(AP) := guardAction(AP, {'buildClientFinishedV2, send, client}) ; buildClientFinishedV2 .
+  sd executeAction(AP) := guardAction(AP, {'processServerHelloV2, receive, client}) ; processServerHelloV2 .
+  sd executeAction(AP) := guardAction(AP, {'processServerCertificateV2, receive, client}) ; processServerCertificateV2 .
+  sd executeAction(AP) := guardAction(AP, {'processServerKeyExchangeV2, receive, client}) ; processServerKeyExchangeV2 .
+  sd executeAction(AP) := guardAction(AP, {'processCertificateRequestV2, receive, client}) ; processCertificateRequestV2 .
+  sd executeAction(AP) := guardAction(AP, {'processServerHelloDoneV2, receive, client}) ; processServerHelloDoneV2 .
+  sd executeAction(AP) := guardAction(AP, {'processServerChangeCipherSpecV2, receive, client}) ; processServerChangeCipherSpecV2 .
+  sd executeAction(AP) := guardAction(AP, {'processServerFinishedV2, receive, client}) ; processServerFinishedV2 .
+
+  sd executeAction(AP) := guardAction(AP, {'buildServerHelloV2, send, server}) ; buildServerHelloV2 .
+  sd executeAction(AP) := guardAction(AP, {'buildServerCertificateV2, send, server}) ; buildServerCertificateV2 .
+  sd executeAction(AP) := guardAction(AP, {'buildServerKeyExchangeV2, send, server}) ; buildServerKeyExchangeV2 .
+  sd executeAction(AP) := guardAction(AP, {'buildCertificateRequestV2, send, server}) ; buildCertificateRequestV2 .
+  sd executeAction(AP) := guardAction(AP, {'buildServerHelloDoneV2, send, server}) ; buildServerHelloDoneV2 .
+  sd executeAction(AP) := guardAction(AP, {'buildServerChangeCipherSpecV2, send, server}) ; buildServerChangeCipherSpecV2 .
+  sd executeAction(AP) := guardAction(AP, {'buildServerFinishedV2, send, server}) ; buildServerFinishedV2 .
+  sd executeAction(AP) := guardAction(AP, {'processClientHelloV2, receive, server}) ; processClientHelloV2 .
+  sd executeAction(AP) := guardAction(AP, {'processClientCertificateV2, receive, server}) ; processClientCertificateV2 .
+  sd executeAction(AP) := guardAction(AP, {'processClientKeyExchangeV2, receive, server}) ; processClientKeyExchangeV2 .
+  sd executeAction(AP) := guardAction(AP, {'processCertificateVerifyV2, receive, server}) ; processCertificateVerifyV2 .
+  sd executeAction(AP) := guardAction(AP, {'processClientChangeCipherSpecV2, receive, server}) ; processClientChangeCipherSpecV2 .
+  sd executeAction(AP) := guardAction(AP, {'processClientFinishedV2, receive, server}) ; processClientFinishedV2 .
+endsm

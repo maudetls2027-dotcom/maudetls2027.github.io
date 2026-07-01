@@ -1,0 +1,15 @@
+load ../../tls13-psk.maude
+
+set stats on .
+
+red in RQ1-TLS13-PSK : rq1CountUpTo(
+  TLS-13,
+  initialCWA,
+  rq1Tls13PskKeConf,
+  rq1Tls13PskKeP1Set,
+  rq1Tls13PskKeP1Property,
+  0,
+  80
+) .
+
+quit

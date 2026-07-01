@@ -1,0 +1,377 @@
+smod RFC-5246-CORE-ADDITIONAL is
+  protecting RUN-SCENARIO .
+  protecting TLS-INITIAL-SYSTEM .
+  protecting TLS-ALL-VALUES .
+  protecting SET{BehaviorDVSpec} .
+
+  --- Additional P1/P3/P4/P5 scenarios for TLS 1.2 core handshakes.
+  --- Load after requirements/5246-base.maude.
+  op initConf1 : -> TLSConfiguration .
+  eq initConf1 = iversion(N1 . CI, TLS-12)
+                 iversion(N2 . SI, TLS-12)
+                 icipherSuites(N1 . CI, TLS-ECDHE-ECDSA-WITH-AES-128-GCM-SHA256)
+                 icipherSuites(N2 . SI, TLS-ECDHE-ECDSA-WITH-AES-128-GCM-SHA256)
+                 icompressions(N1 . CI, no-compression)
+                 icompressions(N2 . SI, no-compression)
+                 icertificates(N1 . CI, makeCertificate(N1 . CI, ecdsa, {ecdsa,sha256}, ecdsa))
+                 icertificates(N2 . SI, makeCertificate(N2 . SI, ecdsa, {ecdsa,sha256}, ecdsa))
+                 ipublicKeys(N1 . CI, makePubKey(CA, ecdsa))
+                 ipublicKeys(N2 . SI, makePubKey(CA, ecdsa))
+                 iprivateKeys(N1 . CI, makePrvKey(N1 . CI, ecdsa))
+                 iprivateKeys(N2 . SI, makePrvKey(N2 . SI, ecdsa))
+                 icertificateRequest(N2 . SI)
+                 icertificateTypes(N2 . SI, ecdsa-sign)
+                 icertificateAlgos(N2 . SI, {ecdsa,sha256})
+                 isupported-groups(N1 . CI, secp256r1)
+                 isupported-groups(N2 . SI, secp256r1)
+                 isignature-algorithms(N1 . CI, {ecdsa,sha256})
+                 isignature-algorithms(N2 . SI, {ecdsa,sha256}) .
+
+  op initialCWA : -> ConfWithAction .
+  eq initialCWA = {system | nil : nil} .
+
+  op behaviorDeviationSpecification1 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification1 =
+     {'scen1, ruleLabel('buildServerCertificateV2), skip()} .
+
+  op scenarioProperty1 : -> ScenarioProperty .
+  eq scenarioProperty1 =
+     (anyStep *) ;
+     ruleLabel('scen1) ;
+     (anyStep *) ;
+     (N2 . SI . @errorLog = av[unexpected-message]) .
+
+  op behaviorDeviationSpecification2 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification2 =
+     {'scen2, ruleLabel('buildServerKeyExchangeV2), skip()} .
+
+  op scenarioProperty2 : -> ScenarioProperty .
+  eq scenarioProperty2 =
+     (anyStep *) ;
+     ruleLabel('scen2) ;
+     (anyStep *) ;
+     (N2 . SI . @errorLog = av[unexpected-message]) .
+
+  op behaviorDeviationSpecification3 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification3 =
+     {'scen3, ruleLabel('buildClientKeyExchangeV2), skip()} .
+
+  op scenarioProperty3 : -> ScenarioProperty .
+  eq scenarioProperty3 =
+     (anyStep *) ;
+     ruleLabel('scen3) ;
+     (anyStep *) ;
+     (N1 . CI . @errorLog = av[unexpected-message]) .
+
+  op behaviorDeviationSpecification4 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification4 =
+     {'scen4, ruleLabel('buildServerHelloV2), skip()} .
+
+  op scenarioProperty4 : -> ScenarioProperty .
+  eq scenarioProperty4 =
+     (anyStep *) ;
+     ruleLabel('scen4) ;
+     (anyStep *) ;
+     (N2 . SI . @errorLog = av[unexpected-message]) .
+
+  op behaviorDeviationSpecification5 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification5 =
+     {'scen5, ruleLabel('buildClientChangeCipherSpecV2), skip()} .
+
+  op scenarioProperty5 : -> ScenarioProperty .
+  eq scenarioProperty5 =
+     (anyStep *) ;
+     ruleLabel('scen5) ;
+     (anyStep *) ;
+     (N1 . CI . @errorLog = av[unexpected-message]) .
+
+  op behaviorDeviationSpecification6 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification6 =
+     {'scen6, ruleLabel('buildServerChangeCipherSpecV2), skip()} .
+
+  op scenarioProperty6 : -> ScenarioProperty .
+  eq scenarioProperty6 =
+     (anyStep *) ;
+     ruleLabel('scen6) ;
+     (anyStep *) ;
+     (N2 . SI . @errorLog = av[unexpected-message]) .
+
+  --- P4: keep the signature_algorithms extension, but empty its required content.
+  op behaviorDeviationSpecification7 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification7 =
+     {'scen7, ruleLabel('buildClientHelloV2), setM(#signature-algorithms, mv[(nil).List{SignatureAlgorithm}])} .
+
+  op scenarioProperty7 : -> ScenarioProperty .
+  eq scenarioProperty7 =
+     (anyStep *) ;
+     ruleLabel('scen7) ;
+     (anyStep *) ;
+     (N1 . CI . @errorLog = av[handshake-failure]) .
+
+  --- P4: keep the supported_groups extension, but empty its required content.
+  --- The TLS 1.2 model reaches ServerHello, then cannot choose a ServerKeyExchange group.
+  op behaviorDeviationSpecification8 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification8 =
+     {'scen8, ruleLabel('buildClientHelloV2), setM(#supported-groups, mv[(nil).List{NamedGroup}])} .
+
+  op scenarioProperty8 : -> ScenarioProperty .
+  eq scenarioProperty8 =
+     (anyStep *) ;
+     ruleLabel('scen8) ;
+     (anyStep *) ;
+     (ruleLabel('buildServerHelloV2) and appliedNode(server)) .
+
+  --- P1: insert a forbidden ServerHello signature_algorithms extension.
+  --- This enumerates ordered two-algorithm lists, with repetition allowed.
+  vars SA SA' : SignatureAlgorithm .
+  vars SAL SAL' : List{SignatureAlgorithm} .
+
+  op scen9SignatureAlgorithms : -> List{SignatureAlgorithm} .
+  eq scen9SignatureAlgorithms =
+     {rsa,sha} {rsa,sha224} {rsa,sha256} {rsa,sha384} {rsa,sha512} {rsa,md5}
+     {ecdsa,sha} {ecdsa,sha224} {ecdsa,sha256} {ecdsa,sha384} {ecdsa,sha512}
+     {dsa,sha} {dsa,sha224} {dsa,sha256} {dsa,sha384} {dsa,sha512} .
+
+  op scen9SignatureAlgorithmPairs : List{SignatureAlgorithm} List{SignatureAlgorithm} -> Set{BehaviorDVSpec} .
+  op scen9SignatureAlgorithmPairsFor : SignatureAlgorithm List{SignatureAlgorithm} -> Set{BehaviorDVSpec} .
+
+  eq scen9SignatureAlgorithmPairs(nil, SAL') = empty .
+  eq scen9SignatureAlgorithmPairs(SA SAL, SAL') =
+     scen9SignatureAlgorithmPairsFor(SA, SAL') ,
+     scen9SignatureAlgorithmPairs(SAL, SAL') .
+  eq scen9SignatureAlgorithmPairsFor(SA, nil) = empty .
+  eq scen9SignatureAlgorithmPairsFor(SA, SA' SAL') =
+     {'scen9, ruleLabel('buildServerHelloV2), add(#signature-algorithms, mv[SA SA'])},
+     scen9SignatureAlgorithmPairsFor(SA, SAL') .
+
+  op behaviorDeviationSpecification9 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification9 =
+     scen9SignatureAlgorithmPairs(scen9SignatureAlgorithms, scen9SignatureAlgorithms) .
+
+  op scenarioProperty9 : -> ScenarioProperty .
+  eq scenarioProperty9 =
+     (anyStep *) ;
+     ruleLabel('scen9) ;
+     (anyStep *) ;
+     (N2 . SI . @errorLog = av[illegal-parameter]) .
+
+  --- P3: replace ClientHello signature_algorithms with two-entry lists that
+  --- still include the configured ECDSA/SHA-256 algorithm.
+  op scen10SignatureAlgorithmsNoGood : -> List{SignatureAlgorithm} .
+  eq scen10SignatureAlgorithmsNoGood =
+     {rsa,sha} {rsa,sha224} {rsa,sha256} {rsa,sha384} {rsa,sha512} {rsa,md5}
+     {ecdsa,sha} {ecdsa,sha224} {ecdsa,sha384} {ecdsa,sha512}
+     {dsa,sha} {dsa,sha224} {dsa,sha256} {dsa,sha384} {dsa,sha512} .
+
+  op scen10SignatureGoodPairsFirst : List{SignatureAlgorithm} -> Set{BehaviorDVSpec} .
+  op scen10SignatureGoodPairsSecond : List{SignatureAlgorithm} -> Set{BehaviorDVSpec} .
+
+  eq scen10SignatureGoodPairsFirst(nil) = empty .
+  eq scen10SignatureGoodPairsFirst(SA SAL) =
+     {'scen10, ruleLabel('buildClientHelloV2),
+       setM(#signature-algorithms, mv[{ecdsa,sha256} SA])},
+     scen10SignatureGoodPairsFirst(SAL) .
+  eq scen10SignatureGoodPairsSecond(nil) = empty .
+  eq scen10SignatureGoodPairsSecond(SA SAL) =
+     {'scen10, ruleLabel('buildClientHelloV2),
+       setM(#signature-algorithms, mv[SA {ecdsa,sha256}])},
+     scen10SignatureGoodPairsSecond(SAL) .
+
+  op behaviorDeviationSpecification10 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification10 =
+     scen10SignatureGoodPairsFirst(scen9SignatureAlgorithms) ,
+     scen10SignatureGoodPairsSecond(scen10SignatureAlgorithmsNoGood) .
+
+  op scenarioProperty10 : -> ScenarioProperty .
+  eq scenarioProperty10 =
+     (anyStep *) ;
+     ruleLabel('scen10) ;
+     (anyStep *) ;
+     ((N1 . CI . @clientState = av[V2C-CLOSED]) and
+      (N2 . SI . @serverState = av[V2S-CLOSED])) .
+
+  --- P3: replace ClientHello signature_algorithms with non-empty two-entry
+  --- lists that omit the configured ECDSA/SHA-256 algorithm.
+  op scen11SignatureBadA : -> List{SignatureAlgorithm} .
+  eq scen11SignatureBadA =
+     {rsa,sha} {rsa,sha224} {rsa,sha256} {rsa,sha384} {rsa,sha512} {rsa,md5}
+     {ecdsa,sha} {ecdsa,sha224} {ecdsa,sha384} {ecdsa,sha512} .
+
+  op scen11SignatureBadB : -> List{SignatureAlgorithm} .
+  eq scen11SignatureBadB =
+     {rsa,sha} {rsa,sha224} {rsa,sha256} {rsa,sha384} {rsa,sha512} {rsa,md5} .
+
+  op scen11SignatureBadExtraA : -> List{SignatureAlgorithm} .
+  eq scen11SignatureBadExtraA =
+     {rsa,sha} {rsa,sha224} {rsa,sha256} {rsa,sha384} {rsa,sha512} {rsa,md5}
+     {ecdsa,sha} {ecdsa,sha224} {ecdsa,sha384} .
+
+  op scen11SignatureBadPairs : List{SignatureAlgorithm} List{SignatureAlgorithm} -> Set{BehaviorDVSpec} .
+  op scen11SignatureBadPairsFor : SignatureAlgorithm List{SignatureAlgorithm} -> Set{BehaviorDVSpec} .
+  op scen11SignatureBadExtraPairs : List{SignatureAlgorithm} -> Set{BehaviorDVSpec} .
+
+  eq scen11SignatureBadPairs(nil, SAL') = empty .
+  eq scen11SignatureBadPairs(SA SAL, SAL') =
+     scen11SignatureBadPairsFor(SA, SAL') ,
+     scen11SignatureBadPairs(SAL, SAL') .
+  eq scen11SignatureBadPairsFor(SA, nil) = empty .
+  eq scen11SignatureBadPairsFor(SA, SA' SAL') =
+     {'scen11, ruleLabel('buildClientHelloV2),
+       setM(#signature-algorithms, mv[SA SA'])},
+     scen11SignatureBadPairsFor(SA, SAL') .
+  eq scen11SignatureBadExtraPairs(nil) = empty .
+  eq scen11SignatureBadExtraPairs(SA SAL) =
+     {'scen11, ruleLabel('buildClientHelloV2),
+       setM(#signature-algorithms, mv[SA {ecdsa,sha}])},
+     scen11SignatureBadExtraPairs(SAL) .
+
+  op behaviorDeviationSpecification11 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification11 =
+     scen11SignatureBadPairs(scen11SignatureBadA, scen11SignatureBadB) ,
+     scen11SignatureBadExtraPairs(scen11SignatureBadExtraA) .
+
+  op scenarioProperty11 : -> ScenarioProperty .
+  eq scenarioProperty11 =
+     (anyStep *) ;
+     ruleLabel('scen11) ;
+     (anyStep *) ;
+     (N1 . CI . @errorLog = av[handshake-failure]) .
+
+  vars CS CS' : CipherSuite .
+  vars CSL CSL' : List{CipherSuite} .
+
+  op scen12CommonCipherSuite : -> CipherSuite .
+  eq scen12CommonCipherSuite = TLS-ECDHE-ECDSA-WITH-AES-128-GCM-SHA256 .
+
+  op scen12AlternateCipherSuites : -> List{CipherSuite} .
+  eq scen12AlternateCipherSuites =
+     TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA
+     TLS-DHE-RSA-WITH-AES-256-CBC-SHA
+     TLS-DHE-RSA-WITH-AES-128-CBC-SHA
+     TLS-DH-anon-WITH-AES-128-CBC-SHA
+     TLS-RSA-WITH-AES-256-CBC-SHA
+     TLS-RSA-WITH-AES-128-CBC-SHA
+     TLS-ECDHE-RSA-WITH-AES-256-CBC-SHA
+     TLS-ECDHE-RSA-WITH-AES-128-CBC-SHA
+     TLS-ECDHE-ECDSA-WITH-AES-256-CBC-SHA
+     TLS-ECDHE-ECDSA-WITH-AES-128-CBC-SHA
+     TLS-ECDHE-RSA-WITH-3DES-EDE-CBC-SHA
+     TLS-ECDHE-ECDSA-WITH-3DES-EDE-CBC-SHA
+     TLS-ECDHE-RSA-WITH-AES-128-CBC-SHA256
+     TLS-ECDHE-ECDSA-WITH-AES-128-CBC-SHA256
+     TLS-ECDHE-RSA-WITH-AES-256-CBC-SHA384
+     TLS-ECDHE-ECDSA-WITH-AES-256-CBC-SHA384
+     TLS-ECDH-RSA-WITH-AES-256-CBC-SHA
+     TLS-ECDH-RSA-WITH-AES-128-CBC-SHA
+     TLS-ECDH-ECDSA-WITH-AES-256-CBC-SHA
+     TLS-ECDH-ECDSA-WITH-AES-128-CBC-SHA
+     TLS-ECDH-RSA-WITH-3DES-EDE-CBC-SHA
+     TLS-ECDH-ECDSA-WITH-3DES-EDE-CBC-SHA
+     TLS-ECDH-RSA-WITH-AES-128-CBC-SHA256
+     TLS-ECDH-ECDSA-WITH-AES-128-CBC-SHA256
+     TLS-ECDH-RSA-WITH-AES-256-CBC-SHA384
+     TLS-ECDH-ECDSA-WITH-AES-256-CBC-SHA384
+     TLS-DHE-RSA-WITH-AES-256-CBC-SHA256
+     TLS-DHE-RSA-WITH-AES-128-CBC-SHA256
+     TLS-RSA-WITH-AES-256-CBC-SHA256
+     TLS-RSA-WITH-AES-128-CBC-SHA256
+     TLS-RSA-WITH-AES-128-GCM-SHA256
+     TLS-RSA-WITH-AES-256-GCM-SHA384
+     TLS-DHE-RSA-WITH-AES-128-GCM-SHA256
+     TLS-DHE-RSA-WITH-AES-256-GCM-SHA384
+     TLS-DH-anon-WITH-AES-256-GCM-SHA384
+     TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384
+     TLS-ECDH-ECDSA-WITH-AES-128-GCM-SHA256
+     TLS-ECDH-ECDSA-WITH-AES-256-GCM-SHA384
+     TLS-ECDHE-RSA-WITH-AES-128-GCM-SHA256
+     TLS-ECDHE-RSA-WITH-AES-256-GCM-SHA384
+     TLS-ECDH-RSA-WITH-AES-128-GCM-SHA256
+     TLS-ECDH-RSA-WITH-AES-256-GCM-SHA384
+     TLS-RSA-WITH-AES-128-CCM-8
+     TLS-RSA-WITH-AES-256-CCM-8
+     TLS-ECDHE-ECDSA-WITH-AES-128-CCM
+     TLS-ECDHE-ECDSA-WITH-AES-128-CCM-8
+     TLS-ECDHE-ECDSA-WITH-AES-256-CCM-8
+     TLS-AES-128-CCM-SHA256
+     TLS-AES-128-GCM-SHA256
+     TLS-AES-256-GCM-SHA384 .
+
+  op scen12CipherPairsWithCommonFirst : List{CipherSuite} -> Set{BehaviorDVSpec} .
+  op scen12CipherPairsWithCommonSecond : List{CipherSuite} -> Set{BehaviorDVSpec} .
+
+  eq scen12CipherPairsWithCommonFirst(nil) = empty .
+  eq scen12CipherPairsWithCommonFirst(CS CSL) =
+     {'scen12, ruleLabel('buildClientHelloV2),
+       setM(#cipherSuites, mv[scen12CommonCipherSuite CS])},
+     scen12CipherPairsWithCommonFirst(CSL) .
+  eq scen12CipherPairsWithCommonSecond(nil) = empty .
+  eq scen12CipherPairsWithCommonSecond(CS CSL) =
+     {'scen12, ruleLabel('buildClientHelloV2),
+       setM(#cipherSuites, mv[CS scen12CommonCipherSuite])},
+     scen12CipherPairsWithCommonSecond(CSL) .
+
+  op behaviorDeviationSpecification12 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification12 =
+     scen12CipherPairsWithCommonFirst(scen12AlternateCipherSuites) ,
+     scen12CipherPairsWithCommonSecond(scen12AlternateCipherSuites) .
+
+  op scenarioProperty12 : -> ScenarioProperty .
+  eq scenarioProperty12 =
+     (anyStep *) ;
+     ruleLabel('scen12) ;
+     (anyStep *) ;
+     ((N1 . CI . @clientState = av[V2C-CLOSED]) and
+      (N2 . SI . @serverState = av[V2S-CLOSED])) .
+
+  --- P3: replace ClientHello cipher_suites with non-empty two-entry lists
+  --- that do not overlap the configured TLS 1.2 cipher suite.
+  op scen13CipherBadA : -> List{CipherSuite} .
+  eq scen13CipherBadA =
+     TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA
+     TLS-DHE-RSA-WITH-AES-256-CBC-SHA
+     TLS-DH-anon-WITH-AES-128-CBC-SHA
+     TLS-RSA-WITH-AES-256-CBC-SHA
+     TLS-PSK-WITH-AES-128-CBC-SHA
+     TLS-ECDHE-RSA-WITH-AES-128-GCM-SHA256
+     TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384
+     TLS-ECDH-ECDSA-WITH-AES-128-GCM-SHA256
+     TLS-AES-128-GCM-SHA256
+     TLS-AES-256-GCM-SHA384 .
+
+  op scen13CipherBadB : -> List{CipherSuite} .
+  eq scen13CipherBadB =
+     TLS-RSA-WITH-NULL-MD5
+     TLS-RSA-WITH-NULL-SHA
+     TLS-PSK-WITH-NULL-SHA256
+     TLS-ECDHE-ECDSA-WITH-NULL-SHA
+     TLS-DHE-PSK-WITH-NULL-SHA384
+     TLS-RSA-WITH-AES-128-CCM-8
+     TLS-ECDHE-ECDSA-WITH-AES-128-CCM
+     TLS-PSK-WITH-AES-256-CCM
+     TLS-DHE-PSK-WITH-AES-128-GCM-SHA256
+     TLS-ECDH-RSA-WITH-AES-256-GCM-SHA384 .
+
+  op scen13CipherBadPairs : List{CipherSuite} List{CipherSuite} -> Set{BehaviorDVSpec} .
+  op scen13CipherBadPairsFor : CipherSuite List{CipherSuite} -> Set{BehaviorDVSpec} .
+
+  eq scen13CipherBadPairs(nil, CSL') = empty .
+  eq scen13CipherBadPairs(CS CSL, CSL') =
+     scen13CipherBadPairsFor(CS, CSL') ,
+     scen13CipherBadPairs(CSL, CSL') .
+  eq scen13CipherBadPairsFor(CS, nil) = empty .
+  eq scen13CipherBadPairsFor(CS, CS' CSL') =
+     {'scen13, ruleLabel('buildClientHelloV2),
+       setM(#cipherSuites, mv[CS CS'])},
+     scen13CipherBadPairsFor(CS, CSL') .
+
+  op behaviorDeviationSpecification13 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification13 =
+     scen13CipherBadPairs(scen13CipherBadA, scen13CipherBadB) .
+
+  op scenarioProperty13 : -> ScenarioProperty .
+  eq scenarioProperty13 =
+     (anyStep *) ;
+     ruleLabel('scen13) ;
+     (anyStep *) ;
+     (N1 . CI . @errorLog = av[handshake-failure]) .
+endsm

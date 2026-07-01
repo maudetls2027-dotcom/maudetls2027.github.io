@@ -1,0 +1,10 @@
+load common.maude
+load ../rfc/5246-core.maude
+
+smod RQ5-TLS12 is
+  protecting RFC-5246-CORE .
+  protecting RQ5-COMMON .
+
+  op rq5Tls12Conf : -> TLSConfiguration .
+  eq rq5Tls12Conf = initConf1 tester(N2 . SI) target(N1 . CI) .
+endsm

@@ -1,0 +1,10 @@
+load common.maude
+load ../rfc/hrr.maude
+
+smod RQ5-TLS13-HRR is
+  protecting RFC-HRR .
+  protecting RQ5-COMMON .
+
+  op rq5Tls13HrrConf : -> TLSConfiguration .
+  eq rq5Tls13HrrConf = initConf tester(N2 . SI) target(N1 . CI) .
+endsm

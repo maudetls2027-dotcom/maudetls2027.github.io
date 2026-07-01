@@ -1,0 +1,563 @@
+omod CONNECT-V2-API-HEADER is
+  protecting CLIENT-V2-STATE .
+  protecting BUILD-RECORD-LAYER .
+  protecting ABORT-COMMON-AUX .
+  protecting TLS12-RFC-REQUIREMENTS .
+endom
+
+omod BUILD-CLIENT-HELLO-V2 is
+  protecting CONNECT-V2-API-HEADER .
+
+  vars CI TI : TId .
+  var N : Nat .
+  var CSL : List{CipherSuite} .
+  var COMPL : List{CompressionMethod} .
+  vars SID? RND? : Nonce? .
+  var RND : Nonce .
+  vars TSC MC MC' : MsgContent .
+  var MSGS : List{TLSMsg} .
+  vars EXT EXT' : Extension .
+  var KEY? : Key? .
+  var CV? : Nonce? .
+  var SR : Bool .
+
+  crl [buildClientHelloV2]:
+      < CI to TI : Link | msgQueue : MSGS >
+      < CI : Client | clientState : V2C-INIT, clientRandom : RND?, nonceCtr : N, transcript : TSC, sessionId : SID?,
+                          cipherSuites : CSL, compressions : COMPL, extensions : EXT, target : TI, sessionWriteKey : KEY?,
+                          prevClientVerifyData : CV?, secureRenegotiation : SR >
+   =>  < CI to TI : Link | msgQueue : MSGS :: {MC'} >
+      {< CI : Client | clientState : V2C-CT-HLO, clientRandom : RND, nonceCtr : s N, transcript : MC >,
+         buildClientHelloV2(MC, MC', TI)}
+   if EXT' := extensionsFor(client-hello, EXT clientRenegotiationInfoForV2(SR, CV?)) /\ RND := nonce(CI, N)
+   /\ MC := handshakeType(client-hello) handshakeLen(valid)
+            protocol(TLS-12) random(RND) sessionIdLen(valid) sessionId(SID?) cipherSuitesLen(valid) cipherSuites(CSL) compressionsLen(valid) compressions(COMPL)
+            extensions(EXT') extensionsLen(valid)
+  /\ MC' := addRecordV2(KEY?, MC) [print "buildClientHelloV2"] .
+endom
+
+omod PROCESS-SERVER-HELLO-V2 is
+  protecting CONNECT-V2-API-HEADER .
+
+  vars CI TI : TId .
+  vars MC MC' TSC : MsgContent .
+  var MSGS : List{TLSMsg} .
+  var PV' : ProtocolVersion .
+  var CS : CipherSuite .
+  var CSL : List{CipherSuite} .
+  var CM : CompressionMethod .
+  var CML : List{CompressionMethod} .
+  vars RND SID : Nonce .
+  vars CEXT EXT EXT' EXT'' : Extension .
+  var PV? : ProtocolVersion? .
+  var CM? : CompressionMethod? .
+  var CS? : CipherSuite? .
+  vars RND? SID? : Nonce? .
+  vars CV? SV? : Nonce? .
+  vars ORS RS SR : Bool .
+  var SESS : SessionState .
+  vars PCERTL PCERTL' : List{Certificate} .
+  var SCM? : CompressionMethod? .
+  var SCS? : CipherSuite? .
+  var OMS? : Nonce? .
+  var SMS? : Nonce? .
+  var FSID? : Nonce? .
+  vars ORKEY? OWKEY? : Key? .
+  vars RKEY? WKEY? : Key? .
+
+  --- full handshake
+ crl [processServerHelloV2]:
+      < TI to CI : Link | msgQueue : {MC} :: MSGS >
+      < CI : Client | clientState : V2C-CT-HLO, transcript : TSC,
+                      selectedVersion : PV?, selectedCipherSuite : CS?, selectedCompression : CM?, extensions : CEXT,
+                      selectedExtensions : EXT, serverRandom : RND?, sessionId : SID?,
+                      sessionState : SESS, sessionResumption : ORS, peerCertificate : PCERTL, masterSecret : OMS?,
+                      pendingReadKey : ORKEY?, pendingWriteKey : OWKEY?, failedSessionId : FSID?,
+                      prevClientVerifyData : CV?, secureRenegotiation : SR >
+  =>  < TI to CI : Link | msgQueue : MSGS >
+     {< CI : Client | clientState : if RS then V2C-CT-FIN else V2C-SRV-HLO fi, transcript : TSC removeRecord(MC),
+                      selectedVersion : PV', selectedCipherSuite : SCS?, selectedCompression : SCM?, selectedExtensions : EXT'', serverRandom : RND, sessionId : SID,
+                      sessionResumption : RS, peerCertificate : PCERTL', masterSecret : SMS?,
+                      pendingReadKey : RKEY?, pendingWriteKey : WKEY? >,
+        processServerHelloV2(MC, TI)}
+  if protocol(PV') random(RND) sessionId(SID) cipherSuites(CS) compressions(CM) extensions(EXT'') MC' := MC
+  /\ sess[RS, PCERTL', SCM?, SCS?, SMS?, RKEY?, WKEY?] := decideEchoedSessionV2(SESS, FSID?, SID?, SID, PCERTL, CM, CS, OMS?)
+  /\ rfc-requirement(tls12-server-hello, label[1],  MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-hello, label[2],  MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-hello, label[3],  MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-hello, label[4],  MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-hello, label[5],  MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-hello, label[6],  MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-hello, label[7],  MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-hello, label[8],  MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-hello, label[9],  MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-hello, label[10], MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-hello, label[11], MC,
+       < CI : Client | extensions : CEXT, secureRenegotiation : SR, prevClientVerifyData : CV? >) [print "processServerHelloV2"] .
+endom
+
+omod PROCESS-SERVER-CERTIFICATE-V2 is
+  protecting CONNECT-V2-API-HEADER .
+
+  vars CI TI : TId .
+  var CS : CipherSuite .
+  vars MC MC' TSC : MsgContent .
+  var MSGS : List{TLSMsg} .
+  var PUBKS : Set{Key} .
+  var CAL : List{TId} .
+  var CERT : Certificate .
+  var CERTL : List{Certificate} .
+  var EXT : Extension .
+
+  --- [RFC 5246] In (EC)DH_anon, the server's Certificate, the CertificateRequest, the
+  --- client's Certificate, and the CertificateVerify messages MUST NOT be sent.
+ ceq [skipServerCertificateV2]:
+     < CI : Client | clientState : V2C-SRV-HLO, selectedCipherSuite : CS >
+   = < CI : Client | clientState : V2C-SRV-CERT >
+  if authC(CS) == anon [print "skipServerCertificateV2"] .
+
+ crl [processServerCertificateV2]:
+      < TI to CI : Link | msgQueue : {MC} :: MSGS >
+      < CI : Client | clientState : V2C-SRV-HLO, peerCertificate : CERTL, publicKey : PUBKS, extensions : EXT, transcript : TSC, target : TI >
+  =>  < TI to CI : Link | msgQueue : MSGS >
+     {< CI : Client | clientState : V2C-SRV-CERT, peerCertificate : CERT, publicKey : (getCertPubKey(CERT), PUBKS), transcript : TSC removeRecord(MC) >,
+        processServerCertificateV2(MC, TI)}
+  if certificates(CERT) MC' := MC
+  /\ rfc-requirement(tls12-server-certificate, label[1], MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-certificate, label[2], MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-certificate, label[3], MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-certificate, label[4], MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-certificate, label[5], MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-certificate, label[6], MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-certificate, label[7], MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-certificate, label[8], MC, < CI : Client | >) [print "processServerCertificateV2"] .
+endom
+
+omod PROCESS-SERVER-KEY-EXCHANGE-V2 is
+  protecting CONNECT-V2-API-HEADER .
+
+  vars CI TI : TId .
+  vars MC MC' TSC : MsgContent .
+  var MSGS : List{TLSMsg} .
+  var CS : CipherSuite .
+  var KEYS : Set{Key} .
+  var EXT : Extension .
+  vars CRANDOM SRANDOM KV : Nonce .
+  var KV? : Nonce? .
+  var NG? : NamedGroup? .
+  var NG : NamedGroup .
+
+ ceq [skipServerKeyExchangeV2]:
+     < CI : Client | clientState : V2C-SRV-CERT, selectedCipherSuite : CS >
+   = < CI : Client | clientState : V2C-SRV-KEY-X >
+  if (keyC(CS) == rsaKE or (keyC(CS) == dh and (authC(CS) == dss or authC(CS) == rsa))) [print "skipServerKeyExchangeV2"] .
+
+ crl [processServerKeyExchangeV2]:
+      < TI to CI : Link | msgQueue : {MC} :: MSGS >
+      < CI : Client | clientState : V2C-SRV-CERT, transcript : TSC,
+                      keyExchangeGroup : NG?, keyExchangeValue : KV? >
+  =>  < TI to CI : Link | msgQueue : MSGS >
+     {< CI : Client | clientState : V2C-SRV-KEY-X, transcript : TSC removeRecord(MC),
+                      keyExchangeGroup : NG, keyExchangeValue : KV >,
+	    processServerKeyExchangeV2(MC, TI)}
+  if serverKeyExchange(NG,KV) MC' := MC
+  /\ rfc-requirement(tls12-server-key-exchange, label[1], MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-key-exchange, label[2], MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-key-exchange, label[3], MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-key-exchange, label[4], MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-key-exchange, label[5], MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-key-exchange, label[6], MC, < CI : Client | >) [print "processServerKeyExchangeV2"] .
+endom
+
+omod PROCESS-SERVER-CERTIFICATE-REQUEST-V2 is
+  protecting CONNECT-V2-API-HEADER .
+
+  vars CI TI : TId .
+  vars CTL CTL' : List{CertificateType} .
+  vars CLL CLL' : List{SignatureAlgorithm} .
+  vars CAL CAL' : List{TId} .
+  vars MC MC' TSC : MsgContent .
+  vars MSGS MSGS' : List{TLSMsg} .
+  var B : Bool .
+  var CS : CipherSuite .
+  var AD : AlertDescription .
+  var CT : ContentType .
+  var HT : HandshakeType .
+  var WKEY? : Key? .
+
+ ceq [skipCertificateRequestV2]:
+     < CI : Client | clientState : V2C-SRV-KEY-X, selectedCipherSuite : CS >
+   = < CI : Client | clientState : V2C-CERT-REQ >
+  if authC(CS) == anon [print "skipCertificateRequestV2"] .
+
+ crl [processCertificateRequestV2]:
+      < TI to CI : Link | msgQueue : {MC} :: MSGS >
+      < CI : Client | clientState : V2C-SRV-KEY-X,
+                          certificateType : CTL, certificateAlgo : CLL, certificateAuth : CAL, transcript : TSC, certificateRequested : B >
+  =>  < TI to CI : Link | msgQueue : MSGS >
+     {< CI : Client | clientState : V2C-CERT-REQ,
+                          certificateType : CTL', certificateAlgo : CLL', certificateAuth : CAL', transcript : TSC removeRecord(MC), certificateRequested : true >,
+       processCertificateRequestV2(MC, TI)}
+  if certificateTypes(CTL') certificateAlgos(CLL') certificateAuths(CAL') MC' := MC
+  /\ rfc-requirement(tls12-certificate-request, label[1], MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-certificate-request, label[2], MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-certificate-request, label[3], MC, < CI : Client | >) [print "processCertificateRequestV2"] .
+endom
+
+omod PROCESS-SERVER-HELLO-DONE-V2 is
+  protecting CONNECT-V2-API-HEADER .
+
+  var CI TI : TId .
+  vars MC TSC : MsgContent .
+  var MSGS : List{TLSMsg} .
+
+ crl [processServerHelloDoneV2]:
+      < TI to CI : Link | msgQueue : {MC} :: MSGS >
+      < CI : Client | clientState : V2C-CERT-REQ, transcript : TSC >
+  =>  < TI to CI : Link | msgQueue : MSGS >
+     {< CI : Client | clientState : V2C-SRV-HLO-DONE, transcript : TSC removeRecord(MC) >,
+        processServerHelloDoneV2(MC, TI)}
+  if rfc-requirement(tls12-server-hello-done, label[1], MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-hello-done, label[2], MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-server-hello-done, label[3], MC, < CI : Client | >) [print "processServerHelloDoneV2"] .
+endom
+
+omod BUILD-CLIENT-CERTIFICATE-V2 is
+  protecting CONNECT-V2-API-HEADER .
+
+  vars CI CA TI : TId .
+  vars CERTL CERTL' : List{Certificate} .
+  vars TSC MC MC' : MsgContent .
+  var MSGS : List{TLSMsg} .
+  vars CTL CTL' : List{CertificateType} .
+  var SALGOL : List{SignatureAlgorithm} .
+  var SALGO : SignatureAlgorithm .
+  var CAL : List{TId} .
+  var PKA : PublicKeyAlgorithm .
+  var CITEM : CertificateItems .
+  var CS : CipherSuite .
+  var B : Bool .
+  var WKEY? : Key? .
+
+ ceq [skipClientCertificateV2]:
+     < CI : Client | clientState : V2C-SRV-HLO-DONE, certificateRequested : B, selectedCipherSuite : CS >
+   = < CI : Client | clientState : V2C-CT-CERT >
+  if (not B) or authC(CS) == anon [print "skipClientCertificateV2"] .
+
+  --- This message is only sent if the server requests a certificate.
+  --- If no suitable certificate is available, the client MUST send a certificate message containing no
+  --- certificates.  That is, the certificate_list structure has a length of zero.
+  crl [buildClientCertificateV2]:
+       < CI to TI : Link | msgQueue : MSGS >
+       < CI : Client | clientState : V2C-SRV-HLO-DONE, transcript : TSC, certificates : CERTL,
+	                         certificateType : CTL, certificateAlgo : SALGOL, certificateAuth : CAL,
+						               target : TI, certificateRequested : true, selectedCipherSuite : CS, sessionWriteKey : WKEY? >
+   =>  < CI to TI : Link | msgQueue : MSGS :: {MC'} >
+      {< CI : Client | clientState : V2C-CT-CERT, transcript : TSC MC >,
+         buildClientCertificateV2(MC, MC', TI)}
+   if authC(CS) =/= anon
+   /\ CERTL' := pickCertificate(CERTL,CTL,SALGOL,CAL)
+   /\ MC := handshakeType(certificate) handshakeLen(valid) certificatesLen(valid) certificates(CERTL')
+   /\ MC' := addRecordV2(WKEY?, MC) [print "buildClientCeritifcateV2"] .
+
+  op pickCertificate : List{Certificate} List{CertificateType} List{SignatureAlgorithm} List{TId} -> List{Certificate} .
+  eq pickCertificate(nil, CTL, SALGOL, CAL) = nil .
+ ceq pickCertificate(x509(crPublicKeyAlgorithm(PKA), crIssuer(CA), crSignatureAlgorithm(SALGO), CITEM) CERTL,
+                     CTL, SALGOL, CAL)
+   = x509(crPublicKeyAlgorithm(PKA), crIssuer(CA), crSignatureAlgorithm(SALGO), CITEM)
+  if occurs(CA, CAL) /\ occurs(SALGO, SALGOL) /\ validCertificateType(PKA, CTL) .
+  eq pickCertificate(x509(CITEM) CERTL, CTL, SALGOL, CAL) = pickCertificate(CERTL, CTL, SALGOL, CAL) [owise] .
+
+  op validCertificateType : PublicKeyAlgorithm List{CertificateType} -> Bool .
+  eq validCertificateType(dhpublicnumber, CTL rsa-fixed-dh CTL') = true .
+  eq validCertificateType(dhpublicnumber, CTL dss-fixed-dh CTL') = true .
+  eq validCertificateType(id-ecPublicKey, CTL ecdsa-sign CTL') = true .
+  eq validCertificateType(rsaEncryption, CTL rsa-sign CTL') = true .
+  eq validCertificateType(id-dsa, CTL dss-sign CTL') = true .
+  eq validCertificateType(PKA, CTL) = false [owise] .
+endom
+
+omod BUILD-CLIENT-KEY-EXCHANGE-V2 is
+  protecting CONNECT-V2-API-HEADER .
+
+  vars CI TI : TId .
+  var N : Nat .
+  var CS : CipherSuite .
+  vars NONCE NONCE' CRANDOM SRANDOM : Nonce .
+  vars KEYPARAM TSC MC MC' : MsgContent .
+  var MSGS : List{TLSMsg} .
+  var KEYS : Set{Key} .
+  var KEY : Key .
+  var KEY? : Key? .
+  var WKEY? : Key? .
+  var MS : MasterSecret .
+  var PMS : PreMasterSecret .
+  var NC : NamedCurve .
+  var PV : ProtocolVersion .
+  var FF : FiniteField .
+  var NONCE? MS? : Nonce? .
+  var NG? : NamedGroup? .
+
+  crl [buildClientKeyExchangeV2]:
+      < CI to TI : Link | msgQueue : MSGS >
+      < CI : Client | clientState : V2C-CT-CERT, nonceCtr : N, masterSecret : MS?, transcript : TSC,
+                          pendingReadKey : KEY?, pendingWriteKey : KEY?,
+                          clientRandom : CRANDOM, serverRandom : SRANDOM, target : TI, keyExchangeValue : NONCE?, keyExchangeGroup : NG?,
+						              selectedCipherSuite : CS, selectedVersion : PV, publicKey : (KEY, KEYS), sessionWriteKey : WKEY? >
+  =>  < CI to TI : Link | msgQueue : MSGS :: {MC'} >
+     {< CI : Client | clientState : V2C-CT-KEY-X, nonceCtr : s s N, masterSecret : MS, transcript : TSC MC,
+                         pendingReadKey : symKey(encrC(CS),MS), pendingWriteKey : symKey(encrC(CS),MS) >,
+		buildClientKeyExchangeV2(MC, MC', TI)}
+  if KEYPARAM := clientParam(CS, PV, NG?, nonce(CI, N))
+  /\ PMS := clientPMS(KEYPARAM, NONCE?)
+  /\ MS  := ms(PMS,CRANDOM,SRANDOM)
+  /\ MC  := handshakeType(client-key-exchange) handshakeLen(valid)
+            if (keyC(CS) == rsaKE) then encrypt(KEY, KEYPARAM) else KEYPARAM fi
+  /\ MC' := addRecordV2(WKEY?, MC) [print "buildClientKeyExchangeV2"] .
+
+  op clientParam : CipherSuite ProtocolVersion NamedGroup? Nonce -> MsgContent .
+ ceq clientParam(CS, PV, NG?, NONCE) = clientPMSParam(pms(PV,NONCE)) if keyC(CS) == rsaKE .
+ ceq clientParam(CS, PV, FF,  NONCE) = clientDHParam(dh(FF,NONCE)) if (keyC(CS) == dhe or keyC(CS) == dh) .
+ ceq clientParam(CS, PV, NC,  NONCE) = clientECDHParam(ecdh(NC,NONCE)) if (keyC(CS) == ecdhe or keyC(CS) == ecdh) .
+
+  op clientPMS : MsgContent Nonce? -> Nonce .
+  eq clientPMS(clientPMSParam(pms(PV,NONCE)), NONCE?) = pms(PV, NONCE) .
+  eq clientPMS(clientDHParam(dh(FF,NONCE)), NONCE') = pms(dhCompute(dh(FF,NONCE), NONCE')) .
+  eq clientPMS(clientECDHParam(ecdh(NC,NONCE)), NONCE') = pms(dhCompute(ecdh(NC,NONCE), NONCE')) .
+endom
+
+omod BUILD-CLIENT-CERTIFICATE-VERIFY-V2 is
+  protecting CONNECT-V2-API-HEADER .
+
+  vars CI TI : TId .
+  vars TSC MC MC' : MsgContent .
+  var MSGS : List{TLSMsg} .
+  var SC : SignatureAlgorithm .
+  var SCL : List{SignatureAlgorithm} .
+  var NONCE : Nonce .
+  var CS : CipherSuite .
+  var B : Bool .
+  var AKT : AsymKeyType .
+  var WKEY? : Key? .
+
+ ceq [skipCertificateVerifyV2]:
+     < CI : Client | clientState : V2C-CT-KEY-X, certificateRequested : B, selectedCipherSuite : CS >
+   = < CI : Client | clientState : V2C-CERT-VF >
+  if (not B) or authC(CS) == anon [print "skipCertificateVerify"] .
+
+ crl [buildClientCertificateVerifyV2]:
+      < CI to TI : Link | msgQueue : MSGS >
+      < CI : Client | clientState : V2C-CT-KEY-X, transcript : TSC, certificateRequested : true,
+                         certificateAlgo : SC SCL, privateKey : prvKey(AKT, NONCE), target : TI, selectedCipherSuite : CS,
+                         sessionWriteKey : WKEY? >
+  =>  < CI to TI : Link | msgQueue : MSGS :: {MC'} >
+     {< CI : Client | clientState : V2C-CERT-VF, transcript : TSC MC >,
+        buildClientCertificateVerifyV2(MC, MC', TI)}
+  if authC(CS) =/= anon
+  /\ MC := handshakeType(certificate-verify) handshakeLen(valid) certificate-verify-algorithm(SC)
+           signature(encrypt(prvKey(AKT,NONCE), hashContent(hash(hashC(SC),TSC)))) signature-len(valid)
+  /\ MC' := addRecordV2(WKEY?, MC) [print "buildClientCertificateVerifyV2"] .
+endom
+
+omod BUILD-CLIENT-CHANGE-CIPHER-SPEC-V2 is
+  protecting CONNECT-V2-API-HEADER .
+
+  vars CI TI : TId .
+  vars MC MC' : MsgContent .
+  var MSGS : List{TLSMsg} .
+  var KEY : Key .
+  var KEY? : Key? .
+
+ crl [buildClientChangeCipherSpecV2]:
+      < CI to TI : Link | msgQueue : MSGS >
+      < CI : Client | clientState : V2C-CERT-VF, pendingWriteKey : KEY, sessionWriteKey : KEY? >
+  =>  < CI to TI : Link | msgQueue : MSGS :: {MC'} >
+     {< CI : Client | clientState : V2C-CT-CHG-CSPEC, pendingWriteKey : noKey, sessionWriteKey : KEY >,
+        buildClientChangeCipherSpecV2(MC, MC', TI)}
+  if MC := changeCipherSpec
+  /\ MC' := addRecordV2(KEY?, MC) [print "buildClientChangeCipherV2"]  .
+endom
+
+omod BUILD-CLIENT-FINISHED-V2 is
+  protecting CONNECT-V2-API-HEADER .
+
+  vars CI TI : TId .
+  vars TSC MC MC' : MsgContent .
+  var MSGS : List{TLSMsg} .
+  var VDATA : Nonce .
+  var MS : MasterSecret .
+  var KEY : Key .
+  var CS : CipherSuite .
+  var CV? : Nonce? .
+  var RS : Bool .
+
+ crl [buildClientFinishedV2]:
+      < CI to TI : Link | msgQueue : MSGS >
+      < CI : Client | clientState : V2C-CT-CHG-CSPEC, masterSecret : MS, transcript : TSC, target : TI, sessionWriteKey : KEY,
+                         selectedCipherSuite : CS, prevClientVerifyData : CV?, sessionResumption : RS >
+  =>  < CI to TI : Link | msgQueue : MSGS :: {MC'} >
+     {< CI : Client | clientState : if RS then V2C-DONE else V2C-CT-FIN fi, transcript : TSC MC,
+                         prevClientVerifyData : VDATA, sessionResumption : false >,
+        buildClientFinishedV2(MC, MC', TI)}
+  if VDATA := hash(hashC(CS), TSC)
+  /\ MC := handshakeType(finished) handshakeLen(valid) verifyData(MS, VDATA)
+  /\ MC' := addRecordV2(KEY, MC) [print "buildClientFinishedV2"] .
+endom
+
+omod PROCESS-SERVER-CHANGE-CIPHER-SPEC-V2 is
+  protecting CONNECT-V2-API-HEADER .
+
+  vars CI TI : TId .
+  vars MC MC' : MsgContent .
+  var MSGS : List{TLSMsg} .
+  var KEY : Key .
+  var WKEY? : Key? .
+
+ crl [processServerChangeCipherSpecV2]:
+      < TI to CI : Link | msgQueue : {MC} :: MSGS >
+      < CI : Client | clientState : V2C-CT-FIN, pendingReadKey : KEY, sessionReadKey : WKEY? >
+  =>  < TI to CI : Link | msgQueue : MSGS >
+     {< CI : Client | clientState : V2C-SRV-CHG-CSPEC, pendingReadKey : noKey, sessionReadKey : KEY >,
+        processServerChangeCipherSpecV2(MC, TI)}
+  if changeCipherSpec MC' := MC
+  /\ rfc-requirement(change-cipher-spec-message, label[1], MC, < CI : Client | >)
+  /\ rfc-requirement(change-cipher-spec-message, label[2], MC, < CI : Client | >) [print "processServerChangeCipherV2"] .
+endom
+
+omod PROCESS-SERVER-FINISHED-V2 is
+  protecting CONNECT-V2-API-HEADER .
+
+  vars CI TI : TId .
+  vars MS MS' : MasterSecret .
+  var HASH' : Nonce .
+  vars MC MC' TSC : MsgContent .
+  var MSGS : List{TLSMsg} .
+  var CS : CipherSuite .
+  var SV? : Nonce? .
+  var B : Bool .
+  var RS : Bool .
+  var SESS : SessionState .
+  var SID : Nonce .
+  var PCERTL : List{Certificate} .
+  var CM? : CompressionMethod? .
+
+ crl [processServerFinishedV2]:
+      < TI to CI : Link | msgQueue : {MC} :: MSGS >
+	    < CI : Client | clientState : V2C-SRV-CHG-CSPEC, clientRenegotiation : B, prevServerVerifyData : SV?, transcript : TSC,
+                       sessionResumption : RS, sessionState : SESS, sessionId : SID, peerCertificate : PCERTL,
+                       selectedCompression : CM?, selectedCipherSuite : CS, masterSecret : MS >
+  =>  < TI to CI : Link | msgQueue : MSGS >
+     {< CI : Client | clientState : if RS then V2C-CERT-VF else if B then V2C-INIT else V2C-DONE fi fi,
+                       clientRenegotiation : false, prevServerVerifyData : HASH', transcript : TSC removeRecord(MC),
+                       sessionState : insert(SID, {PCERTL, CM?, CS, MS}, SESS) >,
+       processServerFinishedV2(MC, TI)}
+  if verifyData(MS', HASH') MC' := MC
+  /\ rfc-requirement(tls12-finished, label[1], MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-finished, label[2], MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-finished, label[3], MC, < CI : Client | >)
+  /\ rfc-requirement(tls12-finished, label[4], MC, < CI : Client | >) [print "processServerFinishedV2"] .
+endom
+
+omod PROCESS-SERVER-ALERT-V2 is
+  protecting CONNECT-V2-API-HEADER .
+
+  vars CI TI : TId .
+  var MC : MsgContent .
+  vars MSGS MSGS' : List{TLSMsg} .
+  var AS : ClientV2State .
+  var PV : ProtocolVersion .
+  var DESC? : AlertDescription? .
+  var DESC : AlertDescription .
+  vars SID? FSID? : Nonce? .
+  var SESS : SessionState .
+  var WKEY? : Key? .
+
+ crl [processCloseNotifyV2]:
+      < TI to CI : Link | msgQueue : {MC} :: MSGS >
+      < CI to TI : Link | msgQueue : MSGS' >
+      < CI : Client | clientState : AS, sessionWriteKey : WKEY?,
+                      sessionState : SESS, failedSessionId : FSID? >
+  =>  < TI to CI : Link | msgQueue : MSGS >
+      < CI to TI : Link | msgQueue : {addRecordV2(WKEY?, alertLev(warning) alertDesc(close-notify))} >
+     {abortCommon(< CI : Client | clientState : V2C-CLOSED,
+                                  sessionState : SESS, failedSessionId : FSID? >),
+        processAlertV2(MC, TI)}
+  if contentType(alert) version(PV) recordLen(valid) alertLev(warning) alertDesc(close-notify) := MC
+     [print "processCloseNotifyV2"] .
+
+ crl [processAlertV2]:
+      < TI to CI : Link | msgQueue : {MC} :: MSGS >
+      < CI : Client | clientState : AS, errorLog : DESC?, sessionId : SID?,
+                      sessionState : SESS, failedSessionId : FSID? >
+  =>  < TI to CI : Link | msgQueue : MSGS >
+     {abortCommon(< CI : Client | clientState : V2C-ERROR, errorLog : DESC,
+                                 sessionState : invalidateSession(SESS, SID?),
+                                 failedSessionId : rememberFailedSessionId(SID?, FSID?) >),
+        processAlertV2(MC, TI)}
+  if contentType(alert) version(PV) recordLen(valid) alertLev(fatal) alertDesc(DESC) := MC [print "processAlert2"] .
+endom
+
+omod ERROR-SERVER-MESSAGE-V2 is
+  protecting CONNECT-V2-API-HEADER .
+
+  var CST : ClientV2State .
+  var WKEY? : Key? .
+  vars MC MC' MC'' MC''' : MsgContent .
+  vars MSGS MSGS' : List{TLSMsg} .
+  var SAL : List{SignatureAlgorithm} .
+  var AD : AlertDescription .
+  vars TI CI : TId .
+  vars CSL : List{CipherSuite} .
+  var CML : List{CompressionMethod} .
+  var B : Bool .
+  vars EXT EXT' : Extension .
+  vars CV? SV? MS? CRANDOM? SRANDOM? SID? FSID? : Nonce? .
+  var CS? : CipherSuite? .
+  var CAL : List{TId} .
+  var KEYS : Set{Key} .
+  var TSC : MsgContent .
+  var SESS : SessionState .
+
+ crl [errorServerMessageV2]:
+      < TI to CI : Link | msgQueue : {MC} :: MSGS >
+	    < CI to TI : Link | msgQueue : MSGS' >
+      < CI : Client | clientState : CST, sessionWriteKey : WKEY?,
+                      sessionId : SID?, failedSessionId : FSID?,
+                      sessionState : SESS >
+  =>  < TI to CI : Link | msgQueue : MSGS >
+		    < CI to TI : Link | msgQueue : MSGS' :: {addRecordV2(WKEY?, MC')} >
+     {abortCommon(< CI : Client | clientState : V2C-ERROR,
+                                 sessionState : invalidateSession(SESS, SID?),
+                                 failedSessionId : rememberFailedSessionId(SID?, FSID?) >),
+       errorServerMessageV2(CST, MC, addRecordV2(noKey, MC'), addRecordV2(WKEY?, MC'), TI)}
+  if AD := messageError(< CI : Client | >, MC)
+  /\ not reservedAlertDescription(AD)
+  /\ MC' := alertLev(fatal) alertDesc(AD) [print "errorServerMessageV2"] .
+
+  op errorServerMessageV2 : ClientV2State MsgContent MsgContent MsgContent TId -> FormalAction .
+  eq errorServerMessageV2(V2C-CT-HLO, MC, MC', MC'', TI) = errorServerHelloV2(MC, MC', MC'', TI) [print "errorServerHelloV2"] .
+  eq errorServerMessageV2(V2C-SRV-HLO, MC, MC', MC'', TI) = errorServerCertificateV2(MC, MC', MC'', TI) [print "errorServerCertificateV2"] .
+  eq errorServerMessageV2(V2C-SRV-CERT, MC, MC', MC'', TI) = errorServerKeyExchangeV2(MC, MC', MC'', TI) [print "errorServerKeyExchangeV2"] .
+ ceq errorServerMessageV2(V2C-SRV-KEY-X, MC, MC', MC'', TI) = errorCertificateRequestV2(MC, MC', MC'', TI) if certificateAlgos(SAL) MC''' := MC [print "errorCertificateRequestV2"] .
+  eq errorServerMessageV2(V2C-CERT-REQ, MC, MC', MC'', TI) = errorServerHelloDoneV2(MC, MC', MC'', TI) [print "errorServerHelloDoneV2"] .
+  eq errorServerMessageV2(V2C-CT-FIN, MC, MC', MC'', TI) = errorServerChangeCipherSpecV2(MC, MC', MC'', TI) [print "errorServerChangeCipherSpecV2"] .
+  eq errorServerMessageV2(V2C-SRV-CHG-CSPEC, MC, MC', MC'', TI) = errorServerFinishedV2(MC, MC', MC'', TI) [print "errorServerFinishedV2"] .
+endom
+
+omod CONNECT-V2-API is
+  protecting BUILD-CLIENT-HELLO-V2 .
+  protecting PROCESS-SERVER-HELLO-V2 .
+  protecting PROCESS-SERVER-CERTIFICATE-V2 .
+  protecting PROCESS-SERVER-KEY-EXCHANGE-V2 .
+  protecting PROCESS-SERVER-CERTIFICATE-REQUEST-V2 .
+  protecting PROCESS-SERVER-HELLO-DONE-V2 .
+  protecting BUILD-CLIENT-CERTIFICATE-V2 .
+  protecting BUILD-CLIENT-KEY-EXCHANGE-V2 .
+  protecting BUILD-CLIENT-CERTIFICATE-VERIFY-V2 .
+  protecting BUILD-CLIENT-CHANGE-CIPHER-SPEC-V2 .
+  protecting BUILD-CLIENT-FINISHED-V2 .
+  protecting PROCESS-SERVER-CHANGE-CIPHER-SPEC-V2 .
+  protecting PROCESS-SERVER-FINISHED-V2 .
+  protecting PROCESS-SERVER-ALERT-V2 .
+  protecting ERROR-SERVER-MESSAGE-V2 .
+endom

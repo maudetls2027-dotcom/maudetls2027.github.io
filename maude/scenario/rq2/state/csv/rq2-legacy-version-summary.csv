@@ -1,0 +1,3 @@
+aggregation_protocol,tls_version,cves,usable_cves,test_case_failures_static,candidate_count,candidate_maude_real_sec,success_count,success_maude_real_sec,failed_runs,count_mismatches,cap_reached,status
+tls12,TLS 1.2,4,4,4,4,77.05,4,77.255,0,0,False,ok
+tls13,TLS 1.3,11,11,27,11,843.6819999999999,11,850.2030000000001,0,0,False,ok

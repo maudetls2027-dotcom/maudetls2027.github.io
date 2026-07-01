@@ -1,0 +1,165 @@
+fmod MESSAGE-ID is
+  sort MessageId .
+
+  op #contentType : -> MessageId [ctor] .
+  op #version : -> MessageId [ctor] .
+  op #recordLen : -> MessageId [ctor] .
+  
+  op #alertDesc : -> MessageId [ctor] .
+  op #alertLev : -> MessageId [ctor] .
+
+  op #handshakeType : -> MessageId [ctor] .
+  op #handshakeLen : -> MessageId [ctor] .
+  op #protocol : -> MessageId [ctor] .
+  op #cipherSuites : -> MessageId [ctor] .
+  op #cipherSuitesLen : -> MessageId [ctor] .
+  op #random : -> MessageId [ctor] .
+  op #sessionId : -> MessageId [ctor] .
+  op #sessionIdLen : -> MessageId [ctor] .
+  op #compressions : -> MessageId [ctor] .
+  op #compressionsLen : -> MessageId [ctor] .
+  op #serverkeyExchange : -> MessageId [ctor] .
+  op #server-key-exchange-algorithm : -> MessageId [ctor] .
+  op #clientPMSParam : -> MessageId [ctor] .
+  op #clientDHParam : -> MessageId [ctor] .
+  op #clientECDHParam : -> MessageId [ctor] .
+  op #certificate-list : -> MessageId [ctor] .
+  op #certificate-list-len : -> MessageId [ctor] .
+  op #certificateTypes : -> MessageId [ctor] .
+  op #certificateTypesLen : -> MessageId [ctor] .
+  op #certificateAlgos : -> MessageId [ctor] .
+  op #certificateAlgosLen : -> MessageId [ctor] .
+  op #certificateAuths : -> MessageId [ctor] .
+  op #certificateAuthsLen : -> MessageId [ctor] .
+  op #verifyData : -> MessageId [ctor] .
+  op #signature : -> MessageId [ctor] .
+  op #signature-len : -> MessageId [ctor] .
+  op #supported-versions : -> MessageId [ctor] .
+  op #supported-versions-len : -> MessageId [ctor] . 
+  op #signature-algorithms : -> MessageId [ctor] .
+  op #signature-algorithms-len : -> MessageId [ctor] .
+  op #signature-algorithms-cert : -> MessageId [ctor] .
+  op #signature-algorithms-cert-len : -> MessageId [ctor] .
+  op #key-shares : -> MessageId [ctor] .
+  op #key-shares-len : -> MessageId [ctor] .
+  op #key-shares-groups : -> MessageId [ctor] .
+  op #supported-groups : -> MessageId [ctor] .
+  op #supported-groups-len : -> MessageId [ctor] .
+  op #psk-key-exchange-mode : -> MessageId [ctor] .
+  op #psk-key-exchange-mode-len : -> MessageId [ctor] .
+  op #pre-shared-key : -> MessageId [ctor] .
+  op #psk-binders : -> MessageId [ctor] .
+  op #pre-shared-key-len : -> MessageId [ctor] .
+  op #early-data : -> MessageId [ctor] .
+  op #early-data-len : -> MessageId [ctor] .
+  op #post-handshake : -> MessageId [ctor] .
+  op #post-handshake-len : -> MessageId [ctor] .
+  op #selected-identifier : -> MessageId [ctor] .
+  op #renegotiation-info : -> MessageId [ctor] .
+  op #renegotiation-info-len : -> MessageId [ctor] .
+  op #cks : -> MessageId [ctor] .
+  op #cks-len : -> MessageId [ctor] .
+  op #cookie : -> MessageId [ctor] .
+  op #cookie-len : -> MessageId [ctor] .
+  op #unknown-extension : -> MessageId [ctor] .
+  op #unknown-extension-len : -> MessageId [ctor] .
+  op #oid-filters : -> MessageId [ctor] .
+  op #oid-filters-len : -> MessageId [ctor] .
+  op #status-request-v2 : -> MessageId [ctor] .
+  op #status-request-v2-len : -> MessageId [ctor] .
+  op #extensionLen : -> MessageId [ctor] .
+  op #certificate-request-context : -> MessageId [ctor] .
+  op #certificate-request-context-len : -> MessageId [ctor] .
+  op #certificate-verify-algorithm : -> MessageId [ctor] .
+  op #newSessionTicket : -> MessageId [ctor] .
+  op #keyUpdateRequest : -> MessageId [ctor] .
+endfm
+
+fmod MESSAGE-VALUE is
+  protecting NONCE? .
+  protecting CONTENT-TYPE .
+  protecting HANDSHAKE-TYPE .
+  protecting MESSAGE-SIZE .  
+  protecting ALERT .
+  protecting KEY-UPDATE-REQUEST .
+  protecting LIST{SignatureAlgorithm} .
+  protecting LIST{NamedGroup} .
+  protecting LIST{ProtocolVersion} .
+  protecting LIST{KeyShareEntry} .
+  protecting LIST{PreSharedKeyExchangeMode} .
+  protecting LIST{Nonce} .
+  protecting LIST{TicketId} .
+  protecting LIST{OIDFilter} .
+  protecting LIST{CompressionMethod} .
+  protecting LIST{CertificateType} .
+  protecting LIST{TId} .
+  protecting LIST{Certificate} .
+  protecting LIST{CipherSuite} .
+  protecting NAT .
+  protecting BOOL .
+
+  sort MessageValue .
+
+  op emptyCertificateList : -> MessageValue [ctor] .
+  op mv[_] : Nat -> MessageValue [ctor] .
+  op mv[_] : Bool -> MessageValue [ctor] .
+  op mv[_] : ContentType -> MessageValue [ctor] .
+  op mv[_] : List{ProtocolVersion} -> MessageValue [ctor] .
+  op mv[_] : MsgSize -> MessageValue [ctor] .
+  op mv[_] : AlertDescription -> MessageValue [ctor] .
+  op mv[_] : AlertLevel -> MessageValue [ctor] .
+  op mv[_] : HandshakeType -> MessageValue [ctor] .
+  op mv[_] : List{CipherSuite} -> MessageValue [ctor] .
+  op mv[_] : Nonce? -> MessageValue [ctor] .
+  op mv[_] : List{CompressionMethod} -> MessageValue [ctor] .
+  op mv[_] : List{Certificate} -> MessageValue [ctor] .
+  op mv[_] : List{CertificateType} -> MessageValue [ctor] .
+  op mv[_] : List{NamedGroup} -> MessageValue [ctor] .
+  op mv[_] : List{PreSharedKeyExchangeMode} -> MessageValue [ctor] .
+  op mv[_] : List{Nonce} -> MessageValue [ctor] .
+  op mv[_] : List{SignatureAlgorithm} -> MessageValue [ctor] .
+  op mv[_] : List{TId} -> MessageValue [ctor] .
+  op mv[_] : KeyUpdateRequest -> MessageValue [ctor] .
+  op mv[_] : List{KeyShareEntry}  -> MessageValue [ctor] .
+  op mv[_] : List{OIDFilter} -> MessageValue [ctor] .
+endfm
+
+view MessageValue from TRIV to MESSAGE-VALUE is
+  sort Elt to MessageValue .
+endv
+
+fmod BEHAVIOR-MODIFICATION is
+  protecting ATTRIBUTE-ID .
+  protecting ATTRIBUTE-VALUE .
+  protecting MESSAGE-ID .
+  protecting MESSAGE-VALUE .
+  protecting RFC-LABEL .
+  protecting HANDSHAKE-TYPE .  
+
+
+  sort BehaviorModification .
+  op setF : AttributeId AttributeValue -> BehaviorModification [ctor] .
+  op setM : MessageId MessageValue -> BehaviorModification [ctor] .
+  op add : MessageId MessageValue -> BehaviorModification [ctor] .
+  op remove : MessageId -> BehaviorModification [ctor] .
+  op noCheck : RFCLabel -> BehaviorModification [ctor] .
+  op skip() : -> BehaviorModification [ctor] .
+  op delay : HandshakeType -> BehaviorModification [ctor] .
+endfm
+
+view BehaviorModification from TRIV to BEHAVIOR-MODIFICATION is
+  sort Elt to BehaviorModification .
+endv
+
+mod BEHAVIOR-DEVIATION-SPECIFICATION is
+  protecting QID .
+  protecting ACTION-PROPOSITION .
+  protecting SET{BehaviorModification} .
+
+  sort BehaviorDVSpec .
+  op {_,_,_} : Qid ActionProposition Set{BehaviorModification} -> BehaviorDVSpec [ctor] .
+endm
+
+view BehaviorDVSpec from TRIV to BEHAVIOR-DEVIATION-SPECIFICATION is
+  sort Elt to BehaviorDVSpec .
+endv

@@ -1,0 +1,13 @@
+fmod WRONG-PROCESS-ACTION is
+  protecting HANDSHAKE-MESSAGE-RULE-LABEL .
+
+  sort ProcessAction .
+  op wrongProcess : HandshakeRuleLabel -> ProcessAction .
+endfm
+
+smod TLS-WRONG-PROCESS-ACTION-STRATEGY is
+  protecting WRONG-PROCESS-ACTION .
+  protecting CONFIGURATION-WITH-ACTION .
+
+  strat wp : ProcessAction @ ConfWithAction .
+endsm

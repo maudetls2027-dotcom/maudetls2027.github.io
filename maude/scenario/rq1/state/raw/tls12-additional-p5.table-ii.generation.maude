@@ -1,0 +1,15 @@
+load ../../tls12-additional.maude
+
+set stats on .
+
+red in RQ1-TLS12-ADDITIONAL : rq1CountUpTo(
+  TLS-12,
+  initialCWA,
+  rq1Tls12AdditionalConf,
+  rq1Tls12AdditionalP5Set,
+  rq1Tls12AdditionalP5Property,
+  0,
+  7
+) .
+
+quit

@@ -1,0 +1,381 @@
+smod TEST-STRATEGY is
+  protecting LINK-OBJECT .
+  protecting CONNECT-V2-API .
+  protecting ACCEPT-V2-API .
+  protecting CONNECT-V3-API .
+  protecting ACCEPT-V3-API .
+  protecting CONFIGURATION-WITH-ACTION .
+  protecting FORMAL-SCENARIO-GENERATOR .
+  protecting INTERNAL-FORMAL-SCENARIO-GENERATOR .
+  protecting TLS-INITIAL-SYSTEM .
+  protecting TLS-INITIAL-SYSTEM .
+  protecting RUN-SCENARIO .
+  protecting MODIFY-MESSAGE-AND-OBJECT .
+
+  op initConf : -> TLSConfiguration .
+
+  --- When a client first connects to a server, it is required to send the ClientHello as its first message.
+  op scen1 : -> ScenarioAction .
+  eq scen1 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v2, {handshake-type, replace(v[client-hello], *(1))}) -> 
+             assert(((N1 . CI) . errorLog) == v[unexpected-message]) -> close(N1 . CI, N2 . SI) .
+
+  --- The server will send this message(ServerHello) in response to a ClientHello message when it was able to find an acceptable set of algorithms. 
+  op scen2 : -> ScenarioAction .
+  eq scen2 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v2, {handshake-type, replace(v[server-hello], *(1))}) -> 
+             assert(((N2 . SI) . errorLog) == v[unexpected-message]) -> close(N1 . CI, N2 . SI) .
+
+  --- This message (Server Certificate) will always immediately follow the ServerHello message.
+  op scen3 : -> ScenarioAction .
+  eq scen3 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-certificate-v2, {handshake-type, replace(v[certificate], *(1))}) -> 
+             assert(((N2 . SI) . errorLog) == v[unexpected-message]) -> close(N1 . CI, N2 . SI) .
+
+  --- This message (ServerKeyExchange)  will be sent immediately after the server Certificate message (or the ServerHello message, if this is an anonymous negotiation).
+  op scen4 : -> ScenarioAction .
+  eq scen4 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-key-exchange-v2, {handshake-type, replace(v[server-key-exchange], *(1))}) -> 
+             assert(((N2 . SI) . errorLog) == v[unexpected-message]) -> close(N1 . CI, N2 . SI) .
+
+  --- This message (CertificateRequest), if sent, will immediately follow the ServerKeyExchange message (if it is sent; otherwise, this message follows the server's Certificate message).
+  op scen5 : -> ScenarioAction .
+  eq scen5 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(certificate-request-v2, {handshake-type, replace(v[certificate-request], *(1))}) -> 
+             assert(((N2 . SI) . errorLog) == v[unexpected-message]) -> close(N1 . CI, N2 . SI) .
+
+  --- The ServerHelloDone message is sent by the server to indicate the end of the ServerHello and associated messages.
+  op scen6 : -> ScenarioAction .
+  eq scen6 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-done-v2, {handshake-type, replace(v[server-hello-done], *(1))}) -> 
+             assert(((N2 . SI) . errorLog) == v[unexpected-message]) -> close(N1 . CI, N2 . SI) .
+
+  --- This (Client Certificate) is the first message the client can send after receiving a ServerHelloDone message.  This message is only sent if the server requests a certificate.
+  op scen7 : -> ScenarioAction .
+  eq scen7 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-certificate-v2, {handshake-type, replace(v[certificate], *(1))}) -> 
+             assert(((N1 . CI) . errorLog) == v[unexpected-message]) -> close(N1 . CI, N2 . SI) .
+
+  --- This message (Client Key Exchange Message) is always sent by the client.  It MUST immediately follow the client certificate message, if it is sent.
+  --- Otherwise, it MUST be the first message sent by the client after it receives the ServerHelloDone message.
+  op scen8 : -> ScenarioAction .
+  eq scen8 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-key-exchange-v2, {handshake-type, replace(v[client-key-exchange], *(1))}) -> 
+             assert(((N1 . CI) . errorLog) == v[unexpected-message]) -> close(N1 . CI, N2 . SI) .
+
+  --- The (Client) ChangeCipherSpec message is sent during the handshake after the security parameters have been agreed upon, but before the verifying Finished message is sent.
+  op scen9 : -> ScenarioAction .
+  eq scen9 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> 
+             changeContent(client-key-exchange-v2, {content-type, replace(v[handshake], v[change-cipher-spec])}) -> 
+             assert(((N1 . CI) . errorLog) == v[unexpected-message]) -> close(N1 . CI, N2 . SI) .
+
+  --- The (Server) ChangeCipherSpec message is sent during the handshake after the security parameters have been agreed upon, but before the verifying Finished message is sent.
+  op scen10 : -> ScenarioAction .
+  eq scen10 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> 
+              changeContent(server-hello-done-v2, {content-type, replace(v[handshake], v[change-cipher-spec])}) -> 
+              assert(((N2 . SI) . errorLog) == v[unexpected-message]) -> close(N1 . CI, N2 . SI) .
+
+  --- compression_method MUST contain and all implementations MUST support, CompressionMethod.null. Thus a client and server will always be able to agree on a compression method
+  op scen11 : -> ScenarioAction .
+  eq scen11 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v2, {compression-methods, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[handshake-failure]) -> close(N1 . CI, N2 . SI) .
+
+  --- A server MUST accept ClientHello messages both with and without the extensions field
+  op scen12 : -> ScenarioAction .
+  eq scen12 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> close(N1 . CI, N2 . SI) .
+
+  --- There MUST NOT be more than one extension of the same type.
+  op scen13 : -> ScenarioAction .
+  eq scen13 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v2, {extensions, add(v[signature-algorithms, *(1)])}) -> 
+              assert(((N1 . CI) . errorLog) == v[handshake-failure]) -> close(N1 . CI, N2 . SI) .
+
+  --- If the client provided a "signature_algorithms" extension, then all certificates provided 
+  --- by the server MUST be signed by a hash/signature algorithm pair that appears in that extension.
+  op scen14 : -> ScenarioAction .
+  eq scen14 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v2, {signature-algorithms, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[handshake-failure]) -> close(N1 . CI, N2 . SI) .
+
+  --- If no suitable certificate is available, the client MUST send a certificate message containing no certificates. 
+  --- That is, the certificate_list structure has a length of zero.
+  op scen15 : -> ScenarioAction .
+  eq scen15 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-certificate-v2, {certificate-list, delete(*(1))}) -> 
+              close(N1 . CI, N2 . SI) .
+
+  --- The certificate MUST be appropriate for the negotiated cipher suite's key exchange algorithm, and any negotiated extensions.
+  op scen16 : -> ScenarioAction .
+  eq scen16 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-certificate-v2, {certificate-list, delete(*(1))}) -> 
+              assert(((N2 . SI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI) .
+
+  --- The hash and signature algorithms used in the signature MUST be one of those present in the supported_signature_algorithms field of the CertificateRequest message.
+  op scen17 : -> ScenarioAction .
+  eq scen17 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-certificate-verify-v2, {certificate-verify-algorithm, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[bad-certificate]) -> close(N1 . CI, N2 . SI) .
+
+  --- Recipients of Finished messages MUST verify that the contents are correct.
+  op scen18 : -> ScenarioAction .
+  eq scen18 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-finished-v2, {verify-data, random(true, N2 . SI, 0)}) -> 
+              assert(((N1 . CI) . errorLog) == v[illegal-parameter]) -> close(N1 . CI, N2 . SI) .
+
+  --- If the version chosen by the server is not supported by the client (or not acceptable), the client MUST send a "protocol_version" alert message and close the connection.
+  op scen19 : -> ScenarioAction .
+  eq scen19 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v2, {version, replace(*(1), *(1))}) -> 
+              assert(((N2 . SI) . errorLog) == v[protocol-version]) -> close(N1 . CI, N2 . SI) .
+
+  --- If server supports (or is willing to use) only versions greater than client_version, it MUST send a "protocol_version" alert message and close the connection.
+  op scen20 : -> ScenarioAction .
+  eq scen20 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v2, {version, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[protocol-version]) -> close(N1 . CI, N2 . SI) .
+
+  --- If a TLS server receives a ClientHello containing a version number greater than the highest version supported by the server, it MUST reply
+  --- according to the highest version supported by the server.
+  op scen21 : -> ScenarioAction .
+  eq scen21 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v2, {version, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[protocol-version]) -> close(N1 . CI, N2 . SI) .
+
+  --- The server MUST send a Certificate message whenever the agreed-upon key exchange method uses certificates for authentication. 
+  op scen22 : -> ScenarioAction .
+  eq scen22 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-certificate-v2, {certificate-list, delete(*(1))}) -> 
+              assert(((N2 . SI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI) .
+
+  --- The server will send this message(ServerHello) in response to a ClientHello message when it was able to find an acceptable set of algorithms.
+  --- If it cannot find such a match, it will respond with a handshake failure alert.
+  op scen23 : -> ScenarioAction .
+  eq scen23 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v2, {cipher-suites, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[handshake-failure]) -> close(N1 . CI, N2 . SI) .
+
+  --- An extension type MUST NOT appear in the ServerHello unless the same extension type appeared in the corresponding ClientHello. If a client
+  --- receives an extension type in ServerHello that it did not request in the associated ClientHello, it MUST abort the handshake with an
+  --- unsupported_extension fatal alert.
+  op scen24 : -> ScenarioAction .
+  eq scen24 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v2, {extensions, add(v[key-shares, *(1)])}) -> 
+              assert(((N2 . SI) . errorLog) == v[unsupported-extension]) -> close(N1 . CI, N2 . SI) .
+
+  --- The server's certificate_list MUST always be non-empty.
+  --- If the server supplies an empty Certificate message, the client MUST abort the handshake with a "decode_error" alert.
+  op scen25 : -> ScenarioAction .
+  eq scen25 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-certificate-v3, {certificate-list, delete(*(1))})-> assert(((N2 . SI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI) .
+
+  --- If (EC)DHE key establishment is in use, then the ServerHello contains a "key_share" extension with
+  --- the server's ephemeral Diffie-Hellman share; the server's share MUST be in the same group as one of the client's shares.
+  op scen26 : -> ScenarioAction .
+  eq scen26 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {key-shares, replace(*(1), *(1))})-> assert(((N2 . SI) . errorLog) == v[illegal-parameter]) -> close(N1 . CI, N2 . SI) .
+
+  --- If there is no overlap between the received "supported_groups" and the groups supported by the server, then the
+  --- server MUST abort the handshake with a "handshake_failure" or an "insufficient_security" alert.
+  op scen27 : -> ScenarioAction .
+  eq scen27 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v3, {supported-groups, replace(*(1), *(1))}) -> assert(((N1 . CI) . errorLog) == v[handshake-failure]) -> close(N1 . CI, N2 . SI) .
+
+  --- In TLS 1.3, the client indicates its version preferences in the "supported_versions" extension (Section 4.2.1) and the
+  --- legacy_version field MUST be set to 0x0303, which is the version number for TLS 1.2.
+  op scen28 : -> ScenarioAction .
+  eq scen28 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v3, {version, replace(*(1), *(1))}) -> assert(((N1 . CI) . errorLog) == v[protocol-version])  -> close(N1 . CI, N2 . SI) .
+
+  --- For every TLS 1.3 ClientHello, this vector MUST contain exactly one byte, set to zero, which corresponds to
+  --- the "null" compression method in prior versions of TLS. If a TLS 1.3 ClientHello is received with any other value in this
+  --- field, the server MUST abort the handshake with an "illegal_parameter" alert.
+  op scen29 : -> ScenarioAction .
+  eq scen29 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v3, {compression-methods, add(*(1))}) -> assert(((N1 . CI) . errorLog) == v[illegal-parameter])  -> close(N1 . CI, N2 . SI) .
+
+  --- In TLS 1.3, the TLS server indicates its version using the "supported_versions" extension
+  --- and the legacy_version field MUST be set to 0x0303, which is the version number for TLS 1.2.
+  op scen30 : -> ScenarioAction .
+  eq scen30 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {version, replace(*(1), *(1))}) -> assert(((N2 . SI) . errorLog) == v[protocol-version])  -> close(N1 . CI, N2 . SI) .
+
+  --- A client which receives a legacy_session_id_echo field that does not match what
+  --- it sent in the ClientHello MUST abort the handshake with an "illegal_parameter" alert.
+  op scen31 : -> ScenarioAction .
+  eq scen31 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {session-id, random(true, N2 . SI, 0)}) -> assert(((N2 . SI) . errorLog) == v[illegal-parameter])  -> close(N1 . CI, N2 . SI) .
+
+  --- A client which receives a cipher suite that was not offered MUST abort the handshake with an
+  --- "illegal_parameter" alert.
+  op scen32 : -> ScenarioAction .
+  eq scen32 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {cipher-suites, replace(*(1), *(1))}) ->
+              assert(((N2 . SI) . errorLog) == v[illegal-parameter])  -> close(N1 . CI, N2 . SI) .
+
+  --- legacy_compression_method: A singel byte which MUST have the value 0.
+  op scen33 : -> ScenarioAction .
+  eq scen33 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v3, {compression-methods, add(*(1))}) -> assert(((N1 . CI) . errorLog) == v[illegal-parameter])  -> close(N1 . CI, N2 . SI) .
+
+  --- The ServerHello MUST only include extensions which are required to establish the cryptographic
+  --- context and negotiate the protocol version.
+  op scen34 : -> ScenarioAction .
+  eq scen34 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {extensions, add(v[signature-algorithms, *(1)])}) ->
+              assert(((N2 . SI) . errorLog) == v[unsupported-extension])  -> close(N1 . CI, N2 . SI) .
+
+  --- All TLS 1.3 ServerHello messages MUST contain the "supported_versions" extension.
+  op scen35 : -> ScenarioAction .
+  eq scen35 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {extensions, delete(v[supported-versions])}) ->
+              assert(((N2 . SI) . errorLog) == v[protocol-version])  -> close(N1 . CI, N2 . SI) .
+
+  --- There MUST NOT be more than one extension of the same type in a given extension block.
+  op scen36 : -> ScenarioAction .
+  eq scen36 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v3, {extensions, add(v[signature-algorithms, *(1)])}) ->
+              assert(((N1 . CI) . errorLog) == v[handshake-failure])  -> close(N1 . CI, N2 . SI) .
+
+  --- If the "supported_versions" extension in the ServerHello contains a version not offered by the client or contains a version prior to
+  --- TLS 1.3, the client MUST abort the handshake with an "illegal_parameter" alert.
+  op scen37 : -> ScenarioAction .
+  eq scen37 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {supported-versions, replace(*(1), *(1))}) ->
+              assert(((N2 . SI) . errorLog) == v[illegal-parameter])  -> close(N1 . CI, N2 . SI) .
+
+  --- If a server is authenticating via a certificate and the client has not sent a "signature_algorithms"
+  --- extension, then the server MUST abort the handshake with a "missing_extension" alert
+  op scen38 : -> ScenarioAction .
+  eq scen38 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v3, {extensions, delete(v[signature-algorithms])}) ->
+              assert(((N1 . CI) . errorLog) == v[missing-extension])  -> close(N1 . CI, N2 . SI) .
+
+  --- signature-algorithms: In particular, MD5 [SLOTH], SHA-224, and DSA MUST NOT be used.
+  op scen39 : -> ScenarioAction .
+  eq scen39 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v3, {signature-algorithms, replace(*(1), v[{ecdsa,md5}])}) ->
+              assert(((N1 . CI) . errorLog) == v[illegal-parameter]) -> close(N1 . CI, N2 . SI)  .
+
+  --- Each KeyShareEntry value MUST correspond to a group offered in the "supported_groups" extension and MUST appear in
+  --- the same order.
+  op scen40 : -> ScenarioAction .
+  eq scen40 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v3, {key-shares, replace(*(1), *(1))}) ->
+              assert(((N1 . CI) . errorLog) == v[illegal-parameter]) -> close(N1 . CI, N2 . SI)  . 
+
+  --- Clients MUST NOT offer multiple KeyShareEntry values for the same group.
+  op scen41 : -> ScenarioAction .
+  eq scen41 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v3, {key-shares, add(v[{secp256r1, ecdh(secp256r1, nonce(N1 . CI, 0))}])}) 
+              -> assert(((N1 . CI) . errorLog) == v[illegal-parameter]) -> close(N1 . CI, N2 . SI)  . 
+
+  --- Clients MUST NOT offer any KeyShareEntry values for groups not listed in the client's "supported_groups" extension.
+  op scen42 : -> ScenarioAction .
+  eq scen42 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v3, {key-shares, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[illegal-parameter]) -> close(N1 . CI, N2 . SI)  . 
+
+  --- This value MUST be in the same group as the KeyShareEntry value offered by the client that the
+  --- server has selected for the negotiated key exchange.
+  op scen43 : -> ScenarioAction .
+  eq scen43 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {key-shares, replace(*(1), *(1))}) ->
+              assert(((N2 . SI) . errorLog) == v[illegal-parameter]) -> close(N1 . CI, N2 . SI)  .
+
+  --- Servers MUST NOT send a KeyShareEntry when using the "psk_ke" PskKeyExchangeMode.
+  op scen44 : -> ScenarioAction .
+  eq scen44 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {extensions, add(v[psk-key-exchange-modes, psk-ke])}) ->
+              assert(((N2 . SI) . errorLog) == v[illegal-parameter]) -> close(N1 . CI, N2 . SI)  .
+
+  --- The client MUST check EncryptedExtensions for the presence of any forbidden extensions and if any are found MUST abort
+  --- the handshake with an "illegal_parameter" alert.
+  op scen45 : -> ScenarioAction .
+  eq scen45 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(encrypted-extension-v3, {extensions, add(v[supported-versions, *(1)])}) -> 
+              assert(((N2 . SI) . errorLog) == v[illegal-parameter]) -> close(N1 . CI, N2 . SI)  .
+
+  --- The "signature_algorithms" extension MUST be specified, and other extensions may optionally be included
+  --- if defined for this message.
+  op scen46 : -> ScenarioAction .
+  eq scen46 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(certificate-request-v3, {extensions, delete(v[signature-algorithms])}) -> 
+              assert(((N2 . SI) . errorLog) == v[illegal-parameter]) -> close(N1 . CI, N2 . SI)  .
+
+ --- The server's end-entity certificate's public key (and associated restrictions) MUST be compatible with the selected authentication
+ --- algorithm from the client's "signature_algorithms" extension
+  op scen47 : -> ScenarioAction .
+  eq scen47 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v3, {signature-algorithms, replace(*(1), v[{ecdsa,sha}])}) -> 
+              assert(((N1 . CI) . errorLog) == v[illegal-parameter]) -> close(N1 . CI, N2 . SI) .
+
+  --- If the CertificateVerify message is sent by a server, the signature
+  --- algorithm MUST be one offered in the client's "signature_algorithms" extension
+  op scen48 : -> ScenarioAction .
+  eq scen48 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 .  CI, N2 . SI) -> changeContent(server-certificate-verify-v3, {certificate-verify-algorithm, replace(*(1), *(1))}) ->
+              assert(((N2 . SI) . errorLog) == v[handshake-failure]) -> close(N1 . CI, N2 . SI)  .
+
+  --- CertificateVerify In addition, the signature algorithm MUST be compatible with the key in the sender's end-entity certificate.
+  op scen49 : -> ScenarioAction .
+  eq scen49 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 .  CI, N2 . SI) -> changeContent(client-certificate-verify-v3, {certificate-verify-algorithm, replace(*(1), *(1))}) ->
+              assert(((N1 . CI) . errorLog) == v[handshake-failure]) -> close(N1 . CI, N2 . SI)  .
+
+  --- The SHA-1 algorithm MUST NOT be used in any signatures of CertificateVerify messages.
+  op scen50 : -> ScenarioAction .
+  eq scen50 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-certificate-verify-v3, {certificate-verify-algorithm, replace(*(1), v[{ecdsa,sha}])}) ->
+              assert(((N1 . CI) . errorLog) == v[handshake-failure]) -> close(N1 . CI, N2 . SI)  .
+
+  --- The receiver of a CertificateVerify message MUST verify the signature
+  --- field.  The verification process takes as input: 
+  --- -  The content covered by the digital signature
+  --- -  The public key contained in the end-entity certificate found in the associated Certificate message
+  --- -  The digital signature received in the signature field of the CertificateVerify message If the verification fails, 
+  ---    the receiver MUST terminate the handshake with a "decrypt_error" alert.
+  op scen51 : -> ScenarioAction .
+  eq scen51 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-certificate-verify-v3, {signature, random(true, N2 . SI, 0)}) -> 
+              assert(((N2 . SI) . errorLog) == v[decrypt-error]) -> close(N1 . CI, N2 . SI)  .
+
+  --- Recipients of Finished messages MUST verify that the contents are correct and if incorrect MUST terminate the connection with a
+  --- "decrypt_error" alert.
+  op scen52 : -> ScenarioAction .
+  eq scen52 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-finished-v3, {verify-data, random(true, N2 . SI, 0)}) -> 
+              assert(((N2 . SI) . errorLog) == v[decrypt-error]) -> close(N1 . CI, N2 . SI)  .
+
+  --- If a TLS implementation receives an unexpected record type, it MUST terminate
+  --- the connection with an "unexpected_message" alert.
+  op scen53 : -> ScenarioAction .
+  eq scen53 = init(initConf tester(N1 . CI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v3, {content-type, replace(v[handshake], *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[unexpected-message]) -> close(N1 . CI, N2 . SI) .
+
+  --- If the decryption fails, the receiver MUST terminate the connection with a "bad_record_mac" alert.
+  op scen54 : -> ScenarioAction .
+  eq scen54 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> close(N1 . CI, N2 . SI) .
+
+  --- Invalid handshake length field in ClientHello
+  op scen55 : -> ScenarioAction .
+  eq scen55 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v3, {handshake-len, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  --- Invalid session id length field in ClientHello
+  op scen56 : -> ScenarioAction .
+  eq scen56 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v3, {sessionId-len, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  --- Invalid ciphersuites len field in ClientHello
+  op scen57 : -> ScenarioAction .
+  eq scen57 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v3, {cipherSuite-len, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  --- Invalid compression length field in ClientHello
+  op scen58 : -> ScenarioAction .
+  eq scen58 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v3, {compression-len, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  --- Invalid extension len field in ClientHello
+  op scen59 : -> ScenarioAction .
+  eq scen59 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v3, {extension-len, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  --- Invalid supported groups length field in ClientHello
+  op scen60 : -> ScenarioAction .
+  eq scen60 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v3, {supported-groups-len, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  --- Invalid signature algorithms length field in ClientHello
+  op scen61 : -> ScenarioAction .
+  eq scen61 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v3, {signature-algorithms-len, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  --- Invalid key shares length field in ClientHello
+  op scen62 : -> ScenarioAction .
+  eq scen62 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v3, {key-shares-len, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  --- Invalid supported versions length field in ClientHello
+  op scen63 : -> ScenarioAction .
+  eq scen63 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(client-hello-v3, {supported-versions-len, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  --- Invalid handshake length field in ServerHello
+  op scen64 : -> ScenarioAction .
+  eq scen64 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {handshake-len, replace(*(1), *(1))}) -> 
+              assert(((N2 . SI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  --- Invalid session id length field in ServerHello
+  op scen65 : -> ScenarioAction .
+  eq scen65 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {sessionId-len, replace(*(1), *(1))}) -> 
+              assert(((N2 . SI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  --- Invalid extension length field in ServerHello
+  op scen66 : -> ScenarioAction .
+  eq scen66 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {extension-len, replace(*(1), *(1))}) -> 
+              assert(((N2 . SI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  --- Invlaid key share length field in ServerHello
+  op scen67 : -> ScenarioAction .
+  eq scen67 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {key-shares-len, replace(*(1), *(1))}) -> 
+              assert(((N2 . SI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  --- Invlaid supported version length field in ServerHello
+  op scen68 : -> ScenarioAction .
+  eq scen68 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {supported-versions-len, replace(*(1), *(1))}) -> 
+              assert(((N2 . SI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+endsm

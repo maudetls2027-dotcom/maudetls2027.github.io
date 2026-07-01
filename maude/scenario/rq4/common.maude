@@ -1,0 +1,30 @@
+load ../threat-module.maude
+
+smod RQ4-COMMON is
+  protecting RUN-SCENARIO .
+  protecting BOOL .
+  protecting NAT .
+  protecting META-LEVEL .
+
+  vars CWA0 CWA1 : ConfWithAction .
+  var PV : ProtocolVersion .
+  var TCONF : TLSConfiguration .
+  var BSS : Set{BehaviorDVSpec} .
+  var SPR : ScenarioProperty .
+  var MODULE : Module .
+  var RESULT : Term .
+  var TYPE : Type .
+  var N : Nat .
+
+  op rq4HasSolution : ProtocolVersion ConfWithAction TLSConfiguration Set{BehaviorDVSpec} ScenarioProperty Nat -> Bool .
+
+  ceq rq4HasSolution(PV, CWA0, TCONF, BSS, SPR, N) = true
+   if MODULE := genThreatModule(PV, BSS)
+   /\ CWA1 := initializeCWA(TCONF, CWA0)
+   /\ {RESULT, TYPE} := metaSrewrite(MODULE, upTerm(CWA1), 'scenarioProperty[[upTerm(SPR)]], breadthFirst, N) .
+
+  ceq rq4HasSolution(PV, CWA0, TCONF, BSS, SPR, N) = false
+   if MODULE := genThreatModule(PV, BSS)
+   /\ CWA1 := initializeCWA(TCONF, CWA0)
+   /\ failure == metaSrewrite(MODULE, upTerm(CWA1), 'scenarioProperty[[upTerm(SPR)]], breadthFirst, N) .
+endsm

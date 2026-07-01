@@ -1,0 +1,2 @@
+load 5246-base.maude
+load ../scenario/rfc/5246-core.maude

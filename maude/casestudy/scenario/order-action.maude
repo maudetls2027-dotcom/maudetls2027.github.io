@@ -1,0 +1,14 @@
+fmod ORDER-ACTION is
+  protecting HANDSHAKE-TYPE .
+  protecting TLS-COMPONENT-ID .
+
+  sort OrderAction .
+  op reorder : TId HandshakeType HandshakeType -> OrderAction .
+endfm
+
+smod TLS-ORDER-MESSAGE-STRATEGY is
+  protecting ORDER-ACTION .
+  protecting CONFIGURATION-WITH-ACTION .
+
+  strat ord : OrderAction @ ConfWithAction .
+endsm

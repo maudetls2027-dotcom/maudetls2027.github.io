@@ -1,0 +1,869 @@
+smod RFC-5246-CORE is
+  protecting RUN-SCENARIO .
+  protecting TLS-INITIAL-SYSTEM .
+  protecting TLS-ALL-VALUES .
+  protecting SET{BehaviorDVSpec} .
+
+  --- tester(...) and target(...) are scenario-run roles, not protocol configuration.
+  --- Pass them at reduction time.
+  op initConf1 : -> TLSConfiguration .
+  eq initConf1 = iversion(N1 . CI, TLS-12)
+                 iversion(N2 . SI, TLS-12)
+                 icipherSuites(N1 . CI, TLS-ECDHE-ECDSA-WITH-AES-128-GCM-SHA256)
+                 icipherSuites(N2 . SI, TLS-ECDHE-ECDSA-WITH-AES-128-GCM-SHA256)
+                 icompressions(N1 . CI, no-compression)
+                 icompressions(N2 . SI, no-compression)
+                 icertificates(N1 . CI, makeCertificate(N1 . CI, ecdsa, {ecdsa,sha256}, ecdsa))
+                 icertificates(N2 . SI, makeCertificate(N2 . SI, ecdsa, {ecdsa,sha256}, ecdsa))
+                 ipublicKeys(N1 . CI, makePubKey(CA, ecdsa))
+                 ipublicKeys(N2 . SI, makePubKey(CA, ecdsa))
+                 iprivateKeys(N1 . CI, makePrvKey(N1 . CI, ecdsa))
+                 iprivateKeys(N2 . SI, makePrvKey(N2 . SI, ecdsa))
+                 icertificateRequest(N2 . SI)
+                 icertificateTypes(N2 . SI, ecdsa-sign)
+                 icertificateAlgos(N2 . SI, {ecdsa,sha256})
+                 isupported-groups(N1 . CI, secp256r1)
+                 isupported-groups(N2 . SI, secp256r1)
+                 isignature-algorithms(N1 . CI, {ecdsa,sha256})
+                 isignature-algorithms(N2 . SI, {ecdsa,sha256}) .
+
+  op initConfResume : -> TLSConfiguration .
+  eq initConfResume = initConf1
+                      ireconnect(N1 . CI)
+                      ireconnect(N2 . SI) .
+
+  op initConfSecureRenegotiation : -> TLSConfiguration .
+  eq initConfSecureRenegotiation = initConf1
+                                   isecureRenegotiation(N1 . CI)
+                                   isecureRenegotiation(N2 . SI) .
+
+  op initialCWA : -> ConfWithAction .
+  eq initialCWA = {system | nil : nil} .
+
+  op behaviorDeviationSpecification1 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification1 =
+     {'scen1, ruleLabel('buildClientHelloV2), setM(#handshakeType, mv[server-hello])},
+     {'scen1, ruleLabel('buildClientHelloV2), setM(#handshakeType, mv[certificate])},
+     {'scen1, ruleLabel('buildClientHelloV2), setM(#handshakeType, mv[server-key-exchange])},
+     {'scen1, ruleLabel('buildClientHelloV2), setM(#handshakeType, mv[certificate-request])},
+     {'scen1, ruleLabel('buildClientHelloV2), setM(#handshakeType, mv[server-hello-done])},
+     {'scen1, ruleLabel('buildClientHelloV2), setM(#handshakeType, mv[client-key-exchange])},
+     {'scen1, ruleLabel('buildClientHelloV2), setM(#handshakeType, mv[certificate-verify])},
+     {'scen1, ruleLabel('buildClientHelloV2), setM(#handshakeType, mv[finished])},
+     {'scen1, ruleLabel('buildClientHelloV2), setM(#handshakeType, mv[encrypted-extension])},
+     {'scen1, ruleLabel('buildClientHelloV2), setM(#handshakeType, mv[hello-retry-request])},
+     {'scen1, ruleLabel('buildClientHelloV2), setM(#handshakeType, mv[new-session-ticket])},
+     {'scen1, ruleLabel('buildClientHelloV2), setM(#handshakeType, mv[key-update-request])} .
+
+  op scenarioProperty1 : -> ScenarioProperty .
+  eq scenarioProperty1 = (anyStep *) ; ruleLabel('scen1) ; (anyStep *) ; (N1 . CI . @errorLog = av[unexpected-message]) .
+
+  op behaviorDeviationSpecification2 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification2 =
+     {'scen2, ruleLabel('buildClientHelloV2), setM(#contentType, mv[change-cipher-spec])},
+     {'scen2, ruleLabel('buildClientHelloV2), setM(#contentType, mv[alert])},
+     {'scen2, ruleLabel('buildClientHelloV2), setM(#contentType, mv[application-data])} .
+
+  op scenarioProperty2 : -> ScenarioProperty .
+  eq scenarioProperty2 = (anyStep *) ; ruleLabel('scen2) ; (anyStep *) ; (N1 . CI . @errorLog = av[unexpected-message]) .
+
+  op behaviorDeviationSpecification3 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification3 =
+     {'scen3, ruleLabel('buildClientHelloV2), setM(#compressions, mv[zlib-compression])} .
+
+  op scenarioProperty3 : -> ScenarioProperty .
+  eq scenarioProperty3 = (anyStep *) ; ruleLabel('scen3) ; (anyStep *) ; (N1 . CI . @errorLog = av[illegal-parameter]) .
+
+  op behaviorDeviationSpecification4 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification4 =
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-DHE-RSA-WITH-AES-256-CBC-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-DHE-RSA-WITH-AES-128-CBC-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-DH-anon-WITH-AES-128-CBC-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-RSA-WITH-AES-256-CBC-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-RSA-WITH-AES-128-CBC-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-RSA-WITH-NULL-MD5])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-RSA-WITH-NULL-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-AES-256-CBC-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-AES-128-CBC-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-AES-256-CBC-SHA384])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-AES-128-CBC-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-NULL-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-NULL-SHA384])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-NULL-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-RSA-WITH-AES-256-CBC-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-RSA-WITH-AES-128-CBC-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-AES-256-CBC-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-AES-128-CBC-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-RSA-WITH-RC4-128-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-RC4-128-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-RSA-WITH-3DES-EDE-CBC-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-3DES-EDE-CBC-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-RSA-WITH-AES-128-CBC-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-AES-128-CBC-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-RSA-WITH-AES-256-CBC-SHA384])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-AES-256-CBC-SHA384])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-NULL-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-PSK-WITH-NULL-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-PSK-WITH-AES-128-CBC-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDH-RSA-WITH-AES-256-CBC-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDH-RSA-WITH-AES-128-CBC-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDH-ECDSA-WITH-AES-256-CBC-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDH-ECDSA-WITH-AES-128-CBC-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDH-RSA-WITH-RC4-128-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDH-ECDSA-WITH-RC4-128-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDH-RSA-WITH-3DES-EDE-CBC-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDH-ECDSA-WITH-3DES-EDE-CBC-SHA])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDH-RSA-WITH-AES-128-CBC-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDH-ECDSA-WITH-AES-128-CBC-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDH-RSA-WITH-AES-256-CBC-SHA384])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDH-ECDSA-WITH-AES-256-CBC-SHA384])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-DHE-RSA-WITH-AES-256-CBC-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-DHE-RSA-WITH-AES-128-CBC-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-RSA-WITH-AES-256-CBC-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-RSA-WITH-AES-128-CBC-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-RSA-WITH-NULL-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-DHE-PSK-WITH-AES-128-CBC-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-DHE-PSK-WITH-NULL-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-DHE-PSK-WITH-AES-256-CBC-SHA384])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-DHE-PSK-WITH-NULL-SHA384])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-RSA-WITH-AES-128-GCM-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-RSA-WITH-AES-256-GCM-SHA384])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-DHE-RSA-WITH-AES-128-GCM-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-DHE-RSA-WITH-AES-256-GCM-SHA384])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-DH-anon-WITH-AES-256-GCM-SHA384])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-AES-128-GCM-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-AES-256-GCM-SHA384])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-DHE-PSK-WITH-AES-128-GCM-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-DHE-PSK-WITH-AES-256-GCM-SHA384])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDH-ECDSA-WITH-AES-128-GCM-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDH-ECDSA-WITH-AES-256-GCM-SHA384])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-RSA-WITH-AES-128-GCM-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-RSA-WITH-AES-256-GCM-SHA384])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDH-RSA-WITH-AES-128-GCM-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDH-RSA-WITH-AES-256-GCM-SHA384])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-RSA-WITH-AES-128-CCM-8])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-RSA-WITH-AES-256-CCM-8])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-AES-128-CCM])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-AES-128-CCM-8])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-AES-256-CCM-8])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-AES-128-CCM])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-AES-256-CCM])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-AES-128-CCM-8])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-AES-256-CCM-8])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-DHE-PSK-WITH-AES-128-CCM])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-DHE-PSK-WITH-AES-256-CCM])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-AES-128-CCM-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-AES-128-CCM-8-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-AES-128-GCM-SHA256])},
+     {'scen4, ruleLabel('buildClientHelloV2), setM(#cipherSuites, mv[TLS-AES-256-GCM-SHA384])} .
+
+  op scenarioProperty4 : -> ScenarioProperty .
+  eq scenarioProperty4 = (anyStep *) ; ruleLabel('scen4) ; (anyStep *) ; (N1 . CI . @errorLog = av[handshake-failure]) .
+
+  op behaviorDeviationSpecification5 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification5 =
+     {'scen5, ruleLabel('buildClientHelloV2), setM(#protocol, mv[TLS-11])} .
+
+  op scenarioProperty5 : -> ScenarioProperty .
+  eq scenarioProperty5 = (anyStep *) ; ruleLabel('scen5) ; (anyStep *) ; (N1 . CI . @errorLog = av[protocol-version]) .
+
+---  op behaviorDeviationSpecification6 : -> Set{BehaviorDVSpec} .
+---  eq behaviorDeviationSpecification6 =
+---     {'scen6, ruleLabel('buildClientHelloV2), add(#signature-algorithms, mv[{rsa,sha}])},
+---     {'scen6, ruleLabel('buildClientHelloV2), add(#signature-algorithms, mv[{rsa,sha224}])},
+---     {'scen6, ruleLabel('buildClientHelloV2), add(#signature-algorithms, mv[{rsa,sha256}])},
+---     {'scen6, ruleLabel('buildClientHelloV2), add(#signature-algorithms, mv[{rsa,sha384}])},
+---     {'scen6, ruleLabel('buildClientHelloV2), add(#signature-algorithms, mv[{rsa,sha512}])},
+---     {'scen6, ruleLabel('buildClientHelloV2), add(#signature-algorithms, mv[{rsa,md5}])},
+---     {'scen6, ruleLabel('buildClientHelloV2), add(#signature-algorithms, mv[{ecdsa,sha}])},
+---     {'scen6, ruleLabel('buildClientHelloV2), add(#signature-algorithms, mv[{ecdsa,sha224}])},
+---     {'scen6, ruleLabel('buildClientHelloV2), add(#signature-algorithms, mv[{ecdsa,sha256}])},
+---     {'scen6, ruleLabel('buildClientHelloV2), add(#signature-algorithms, mv[{ecdsa,sha384}])},
+---     {'scen6, ruleLabel('buildClientHelloV2), add(#signature-algorithms, mv[{ecdsa,sha512}])},
+---     {'scen6, ruleLabel('buildClientHelloV2), add(#signature-algorithms, mv[{dsa,sha}])},
+---     {'scen6, ruleLabel('buildClientHelloV2), add(#signature-algorithms, mv[{dsa,sha224}])},
+---     {'scen6, ruleLabel('buildClientHelloV2), add(#signature-algorithms, mv[{dsa,sha256}])},
+---     {'scen6, ruleLabel('buildClientHelloV2), add(#signature-algorithms, mv[{dsa,sha384}])},
+---     {'scen6, ruleLabel('buildClientHelloV2), add(#signature-algorithms, mv[{dsa,sha512}])} .
+
+  op scenarioProperty6 : -> ScenarioProperty .
+  eq scenarioProperty6 = (anyStep *) ; ruleLabel('scen6) ; (anyStep *) ; (N1 . CI . @errorLog = av[handshake-failure]) .
+
+  op behaviorDeviationSpecification7 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification7 =
+     {'scen7, ruleLabel('buildClientHelloV2), add(#supported-groups, mv[ffdhe2048])},
+     {'scen7, ruleLabel('buildClientHelloV2), add(#supported-groups, mv[ffdhe3072])},
+     {'scen7, ruleLabel('buildClientHelloV2), add(#supported-groups, mv[ffdhe4096])},
+     {'scen7, ruleLabel('buildClientHelloV2), add(#supported-groups, mv[ffdhe6144])},
+     {'scen7, ruleLabel('buildClientHelloV2), add(#supported-groups, mv[ffdhe8192])},
+     {'scen7, ruleLabel('buildClientHelloV2), add(#supported-groups, mv[secp160k1])},
+     {'scen7, ruleLabel('buildClientHelloV2), add(#supported-groups, mv[secp160r1])},
+     {'scen7, ruleLabel('buildClientHelloV2), add(#supported-groups, mv[secp160r2])},
+     {'scen7, ruleLabel('buildClientHelloV2), add(#supported-groups, mv[secp192k1])},
+     {'scen7, ruleLabel('buildClientHelloV2), add(#supported-groups, mv[secp192r1])},
+     {'scen7, ruleLabel('buildClientHelloV2), add(#supported-groups, mv[secp224r1])},
+     {'scen7, ruleLabel('buildClientHelloV2), add(#supported-groups, mv[secp224k1])},
+     {'scen7, ruleLabel('buildClientHelloV2), add(#supported-groups, mv[secp256r1])},
+     {'scen7, ruleLabel('buildClientHelloV2), add(#supported-groups, mv[secp256k1])},
+     {'scen7, ruleLabel('buildClientHelloV2), add(#supported-groups, mv[secp384r1])},
+     {'scen7, ruleLabel('buildClientHelloV2), add(#supported-groups, mv[secp521r1])} .
+
+  op scenarioProperty7 : -> ScenarioProperty .
+  eq scenarioProperty7 = (anyStep *) ; ruleLabel('scen7) ; (anyStep *) ; (N1 . CI . @errorLog = av[handshake-failure]) .
+
+  --- scen8 disabled: RFC 5246 Section 7.4.1.4.1 defines a TLS 1.2
+  --- fallback when signature_algorithms is omitted.  In that case, the
+  --- client is treated as using the SHA-1 signature/hash pair for each
+  --- certificate type, so removing the extension is not itself a fatal
+  --- ClientHello error in the current TLS 1.2 model.
+  --- op behaviorDeviationSpecification8 : -> Set{BehaviorDVSpec} .
+  --- eq behaviorDeviationSpecification8 =
+  ---    {'scen8, ruleLabel('buildClientHelloV2), remove(#signature-algorithms)} .
+
+  --- op scenarioProperty8 : -> ScenarioProperty .
+  --- eq scenarioProperty8 = (anyStep *) ; ruleLabel('scen8) ; (anyStep *) ; (N1 . CI . @errorLog = av[handshake-failure]) .
+
+  op behaviorDeviationSpecification9 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification9 =
+     {'scen9, ruleLabel('buildClientHelloV2), add(#key-shares, mv[{secp192k1, ecdh(secp192k1, nonce(N1 . CI, 0))}])},
+     {'scen9, ruleLabel('buildClientHelloV2), add(#key-shares, mv[{secp192r1, ecdh(secp192r1, nonce(N1 . CI, 0))}])},
+     {'scen9, ruleLabel('buildClientHelloV2), add(#key-shares, mv[{secp224k1, ecdh(secp224k1, nonce(N1 . CI, 0))}])},
+     {'scen9, ruleLabel('buildClientHelloV2), add(#key-shares, mv[{secp224r1, ecdh(secp224r1, nonce(N1 . CI, 0))}])},
+     {'scen9, ruleLabel('buildClientHelloV2), add(#key-shares, mv[{secp256k1, ecdh(secp256k1, nonce(N1 . CI, 0))}])},
+     {'scen9, ruleLabel('buildClientHelloV2), add(#key-shares, mv[{secp256r1, ecdh(secp256r1, nonce(N1 . CI, 0))}])},
+     {'scen9, ruleLabel('buildClientHelloV2), add(#key-shares, mv[{secp384r1, ecdh(secp384r1, nonce(N1 . CI, 0))}])},
+     {'scen9, ruleLabel('buildClientHelloV2), add(#key-shares, mv[{secp521r1, ecdh(secp521r1, nonce(N1 . CI, 0))}])},
+     {'scen9, ruleLabel('buildClientHelloV2), add(#key-shares, mv[{ffdhe2048, dh(ffdhe2048, nonce(N1 . CI, 0))}])},
+     {'scen9, ruleLabel('buildClientHelloV2), add(#key-shares, mv[{ffdhe3072, dh(ffdhe3072, nonce(N1 . CI, 0))}])},
+     {'scen9, ruleLabel('buildClientHelloV2), add(#key-shares, mv[{ffdhe4096, dh(ffdhe4096, nonce(N1 . CI, 0))}])},
+     {'scen9, ruleLabel('buildClientHelloV2), add(#key-shares, mv[{ffdhe6144, dh(ffdhe6144, nonce(N1 . CI, 0))}])},
+     {'scen9, ruleLabel('buildClientHelloV2), add(#key-shares, mv[{ffdhe8192, dh(ffdhe8192, nonce(N1 . CI, 0))}])} .
+
+  op scenarioProperty9 : -> ScenarioProperty .
+  eq scenarioProperty9 = (anyStep *) ; ruleLabel('scen9) ; (anyStep *) ; (N1 . CI . @errorLog = av[handshake-failure]) .
+
+  op behaviorDeviationSpecification10 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification10 =
+     {'scen10, ruleLabel('buildClientHelloV2), add(#psk-key-exchange-mode, mv[psk-ke])},
+     {'scen10, ruleLabel('buildClientHelloV2), add(#psk-key-exchange-mode, mv[psk-dhe-ke])} .
+
+  op scenarioProperty10 : -> ScenarioProperty .
+  eq scenarioProperty10 = (anyStep *) ; ruleLabel('scen10) ; (anyStep *) ; (N1 . CI . @errorLog = av[handshake-failure]) .
+
+  op behaviorDeviationSpecification11 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification11 =
+     {'scen11, ruleLabel('buildClientHelloV2), add(#early-data, mv[true])} .
+
+  op scenarioProperty11 : -> ScenarioProperty .
+  eq scenarioProperty11 = (anyStep *) ; ruleLabel('scen11) ; (anyStep *) ; (N1 . CI . @errorLog = av[handshake-failure]) .
+
+  op behaviorDeviationSpecification12 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification12 =
+     {'scen12, ruleLabel('buildClientHelloV2), add(#post-handshake, mv[true])} .
+
+  op scenarioProperty12 : -> ScenarioProperty .
+  eq scenarioProperty12 = (anyStep *) ; ruleLabel('scen12) ; (anyStep *) ; (N1 . CI . @errorLog = av[handshake-failure]) .
+
+  op behaviorDeviationSpecification13 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification13 =
+     {'scen13, ruleLabel('buildClientCertificateV2), setM(#handshakeType, mv[client-hello])},
+     {'scen13, ruleLabel('buildClientCertificateV2), setM(#handshakeType, mv[server-hello])},
+     {'scen13, ruleLabel('buildClientCertificateV2), setM(#handshakeType, mv[server-key-exchange])},
+     {'scen13, ruleLabel('buildClientCertificateV2), setM(#handshakeType, mv[certificate-request])},
+     {'scen13, ruleLabel('buildClientCertificateV2), setM(#handshakeType, mv[server-hello-done])},
+     {'scen13, ruleLabel('buildClientCertificateV2), setM(#handshakeType, mv[client-key-exchange])},
+     {'scen13, ruleLabel('buildClientCertificateV2), setM(#handshakeType, mv[certificate-verify])},
+     {'scen13, ruleLabel('buildClientCertificateV2), setM(#handshakeType, mv[finished])},
+     {'scen13, ruleLabel('buildClientCertificateV2), setM(#handshakeType, mv[encrypted-extension])},
+     {'scen13, ruleLabel('buildClientCertificateV2), setM(#handshakeType, mv[hello-retry-request])},
+     {'scen13, ruleLabel('buildClientCertificateV2), setM(#handshakeType, mv[new-session-ticket])},
+     {'scen13, ruleLabel('buildClientCertificateV2), setM(#handshakeType, mv[key-update-request])} .
+
+  op scenarioProperty13 : -> ScenarioProperty .
+  eq scenarioProperty13 = (anyStep *) ; ruleLabel('scen13) ; (anyStep *) ; (N1 . CI . @errorLog = av[unexpected-message]) .
+
+  op behaviorDeviationSpecification14 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification14 =
+     {'scen14, ruleLabel('buildClientCertificateV2), setM(#contentType, mv[change-cipher-spec])},
+     {'scen14, ruleLabel('buildClientCertificateV2), setM(#contentType, mv[alert])},
+     {'scen14, ruleLabel('buildClientCertificateV2), setM(#contentType, mv[application-data])} .
+
+  op scenarioProperty14 : -> ScenarioProperty .
+  eq scenarioProperty14 = (anyStep *) ; ruleLabel('scen14) ; (anyStep *) ; (N1 . CI . @errorLog = av[unexpected-message]) .
+
+  op behaviorDeviationSpecification15 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification15 =
+     {'scen15, ruleLabel('buildClientCertificateV2), setM(#certificate-list, emptyCertificateList)} .
+
+  op scenarioProperty15 : -> ScenarioProperty .
+  eq scenarioProperty15 = (anyStep *) ; ruleLabel('scen15) ; (anyStep *) ; (N1 . CI . @errorLog = av[handshake-failure]) .
+
+  op behaviorDeviationSpecification16 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification16 =
+     {'scen16, ruleLabel('buildClientKeyExchangeV2), setM(#handshakeType, mv[client-hello])},
+     {'scen16, ruleLabel('buildClientKeyExchangeV2), setM(#handshakeType, mv[server-hello])},
+     {'scen16, ruleLabel('buildClientKeyExchangeV2), setM(#handshakeType, mv[certificate])},
+     {'scen16, ruleLabel('buildClientKeyExchangeV2), setM(#handshakeType, mv[server-key-exchange])},
+     {'scen16, ruleLabel('buildClientKeyExchangeV2), setM(#handshakeType, mv[certificate-request])},
+     {'scen16, ruleLabel('buildClientKeyExchangeV2), setM(#handshakeType, mv[server-hello-done])},
+     {'scen16, ruleLabel('buildClientKeyExchangeV2), setM(#handshakeType, mv[certificate-verify])},
+     {'scen16, ruleLabel('buildClientKeyExchangeV2), setM(#handshakeType, mv[finished])},
+     {'scen16, ruleLabel('buildClientKeyExchangeV2), setM(#handshakeType, mv[encrypted-extension])},
+     {'scen16, ruleLabel('buildClientKeyExchangeV2), setM(#handshakeType, mv[hello-retry-request])},
+     {'scen16, ruleLabel('buildClientKeyExchangeV2), setM(#handshakeType, mv[new-session-ticket])},
+     {'scen16, ruleLabel('buildClientKeyExchangeV2), setM(#handshakeType, mv[key-update-request])} .
+
+  op scenarioProperty16 : -> ScenarioProperty .
+  eq scenarioProperty16 = (anyStep *) ; ruleLabel('scen16) ; (anyStep *) ; (N1 . CI . @errorLog = av[unexpected-message]) .
+
+  op behaviorDeviationSpecification17 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification17 =
+     {'scen17, ruleLabel('buildClientKeyExchangeV2), setM(#contentType, mv[change-cipher-spec])},
+     {'scen17, ruleLabel('buildClientKeyExchangeV2), setM(#contentType, mv[alert])},
+     {'scen17, ruleLabel('buildClientKeyExchangeV2), setM(#contentType, mv[application-data])} .
+
+  op scenarioProperty17 : -> ScenarioProperty .
+  eq scenarioProperty17 = (anyStep *) ; ruleLabel('scen17) ; (anyStep *) ; (N1 . CI . @errorLog = av[unexpected-message]) .
+
+  op behaviorDeviationSpecification18 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification18 =
+     {'scen18, ruleLabel('buildClientCertificateVerifyV2), setM(#certificate-verify-algorithm, mv[{rsa,sha}])},
+     {'scen18, ruleLabel('buildClientCertificateVerifyV2), setM(#certificate-verify-algorithm, mv[{rsa,sha224}])},
+     {'scen18, ruleLabel('buildClientCertificateVerifyV2), setM(#certificate-verify-algorithm, mv[{rsa,sha256}])},
+     {'scen18, ruleLabel('buildClientCertificateVerifyV2), setM(#certificate-verify-algorithm, mv[{rsa,sha384}])},
+     {'scen18, ruleLabel('buildClientCertificateVerifyV2), setM(#certificate-verify-algorithm, mv[{rsa,sha512}])},
+     {'scen18, ruleLabel('buildClientCertificateVerifyV2), setM(#certificate-verify-algorithm, mv[{rsa,md5}])},
+     {'scen18, ruleLabel('buildClientCertificateVerifyV2), setM(#certificate-verify-algorithm, mv[{ecdsa,sha}])},
+     {'scen18, ruleLabel('buildClientCertificateVerifyV2), setM(#certificate-verify-algorithm, mv[{ecdsa,sha224}])},
+     {'scen18, ruleLabel('buildClientCertificateVerifyV2), setM(#certificate-verify-algorithm, mv[{ecdsa,sha256}])},
+     {'scen18, ruleLabel('buildClientCertificateVerifyV2), setM(#certificate-verify-algorithm, mv[{ecdsa,sha384}])},
+     {'scen18, ruleLabel('buildClientCertificateVerifyV2), setM(#certificate-verify-algorithm, mv[{ecdsa,sha512}])},
+     {'scen18, ruleLabel('buildClientCertificateVerifyV2), setM(#certificate-verify-algorithm, mv[{dsa,sha}])},
+     {'scen18, ruleLabel('buildClientCertificateVerifyV2), setM(#certificate-verify-algorithm, mv[{dsa,sha224}])},
+     {'scen18, ruleLabel('buildClientCertificateVerifyV2), setM(#certificate-verify-algorithm, mv[{dsa,sha256}])},
+     {'scen18, ruleLabel('buildClientCertificateVerifyV2), setM(#certificate-verify-algorithm, mv[{dsa,sha384}])},
+     {'scen18, ruleLabel('buildClientCertificateVerifyV2), setM(#certificate-verify-algorithm, mv[{dsa,sha512}])} .
+
+  op scenarioProperty18 : -> ScenarioProperty .
+  eq scenarioProperty18 = (anyStep *) ; ruleLabel('scen18) ; (anyStep *) ; (N1 . CI . @errorLog = av[illegal-parameter]) .
+
+  op behaviorDeviationSpecification19 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification19 =
+     {'scen19, ruleLabel('buildClientFinishedV2), setM(#verifyData, mv[noNonce])} .
+
+  op scenarioProperty19 : -> ScenarioProperty .
+  eq scenarioProperty19 = (anyStep *) ; ruleLabel('scen19) ; (anyStep *) ; (N1 . CI . @errorLog = av[illegal-parameter]) .
+
+  op behaviorDeviationSpecification20 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification20 =
+     {'scen20, ruleLabel('buildServerHelloV2), setM(#handshakeType, mv[client-hello])},
+     {'scen20, ruleLabel('buildServerHelloV2), setM(#handshakeType, mv[certificate])},
+     {'scen20, ruleLabel('buildServerHelloV2), setM(#handshakeType, mv[server-key-exchange])},
+     {'scen20, ruleLabel('buildServerHelloV2), setM(#handshakeType, mv[certificate-request])},
+     {'scen20, ruleLabel('buildServerHelloV2), setM(#handshakeType, mv[server-hello-done])},
+     {'scen20, ruleLabel('buildServerHelloV2), setM(#handshakeType, mv[client-key-exchange])},
+     {'scen20, ruleLabel('buildServerHelloV2), setM(#handshakeType, mv[certificate-verify])},
+     {'scen20, ruleLabel('buildServerHelloV2), setM(#handshakeType, mv[finished])},
+     {'scen20, ruleLabel('buildServerHelloV2), setM(#handshakeType, mv[encrypted-extension])},
+     {'scen20, ruleLabel('buildServerHelloV2), setM(#handshakeType, mv[hello-retry-request])},
+     {'scen20, ruleLabel('buildServerHelloV2), setM(#handshakeType, mv[new-session-ticket])},
+     {'scen20, ruleLabel('buildServerHelloV2), setM(#handshakeType, mv[key-update-request])} .
+
+  op scenarioProperty20 : -> ScenarioProperty .
+  eq scenarioProperty20 = (anyStep *) ; ruleLabel('scen20) ; (anyStep *) ; (N2 . SI . @errorLog = av[unexpected-message]) .
+
+  op behaviorDeviationSpecification21 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification21 =
+     {'scen21, ruleLabel('buildServerHelloV2), setM(#contentType, mv[change-cipher-spec])},
+     {'scen21, ruleLabel('buildServerHelloV2), setM(#contentType, mv[alert])},
+     {'scen21, ruleLabel('buildServerHelloV2), setM(#contentType, mv[application-data])} .
+
+  op scenarioProperty21 : -> ScenarioProperty .
+  eq scenarioProperty21 = (anyStep *) ; ruleLabel('scen21) ; (anyStep *) ; (N2 . SI . @errorLog = av[unexpected-message]) .
+
+  op behaviorDeviationSpecification22 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification22 =
+     {'scen22, ruleLabel('buildServerHelloV2), setM(#protocol, mv[TLS-11])},
+     {'scen22, ruleLabel('buildServerHelloV2), setM(#protocol, mv[TLS-12])},
+     {'scen22, ruleLabel('buildServerHelloV2), setM(#protocol, mv[TLS-13])} .
+
+  op scenarioProperty22 : -> ScenarioProperty .
+  eq scenarioProperty22 = (anyStep *) ; ruleLabel('scen22) ; (anyStep *) ; (N2 . SI . @errorLog = av[protocol-version]) .
+
+  op behaviorDeviationSpecification23 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification23 =
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-DHE-RSA-WITH-AES-256-CBC-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-DHE-RSA-WITH-AES-128-CBC-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-DH-anon-WITH-AES-128-CBC-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-RSA-WITH-AES-256-CBC-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-RSA-WITH-AES-128-CBC-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-RSA-WITH-NULL-MD5])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-RSA-WITH-NULL-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-AES-256-CBC-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-AES-128-CBC-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-AES-256-CBC-SHA384])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-AES-128-CBC-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-NULL-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-NULL-SHA384])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-NULL-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-RSA-WITH-AES-256-CBC-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-RSA-WITH-AES-128-CBC-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-AES-256-CBC-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-AES-128-CBC-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-RSA-WITH-RC4-128-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-RC4-128-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-RSA-WITH-3DES-EDE-CBC-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-3DES-EDE-CBC-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-RSA-WITH-AES-128-CBC-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-AES-128-CBC-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-RSA-WITH-AES-256-CBC-SHA384])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-AES-256-CBC-SHA384])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-NULL-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-PSK-WITH-NULL-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-PSK-WITH-AES-128-CBC-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDH-RSA-WITH-AES-256-CBC-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDH-RSA-WITH-AES-128-CBC-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDH-ECDSA-WITH-AES-256-CBC-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDH-ECDSA-WITH-AES-128-CBC-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDH-RSA-WITH-RC4-128-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDH-ECDSA-WITH-RC4-128-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDH-RSA-WITH-3DES-EDE-CBC-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDH-ECDSA-WITH-3DES-EDE-CBC-SHA])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDH-RSA-WITH-AES-128-CBC-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDH-ECDSA-WITH-AES-128-CBC-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDH-RSA-WITH-AES-256-CBC-SHA384])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDH-ECDSA-WITH-AES-256-CBC-SHA384])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-DHE-RSA-WITH-AES-256-CBC-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-DHE-RSA-WITH-AES-128-CBC-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-RSA-WITH-AES-256-CBC-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-RSA-WITH-AES-128-CBC-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-RSA-WITH-NULL-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-DHE-PSK-WITH-AES-128-CBC-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-DHE-PSK-WITH-NULL-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-DHE-PSK-WITH-AES-256-CBC-SHA384])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-DHE-PSK-WITH-NULL-SHA384])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-RSA-WITH-AES-128-GCM-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-RSA-WITH-AES-256-GCM-SHA384])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-DHE-RSA-WITH-AES-128-GCM-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-DHE-RSA-WITH-AES-256-GCM-SHA384])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-DH-anon-WITH-AES-256-GCM-SHA384])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-AES-128-GCM-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-AES-256-GCM-SHA384])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-DHE-PSK-WITH-AES-128-GCM-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-DHE-PSK-WITH-AES-256-GCM-SHA384])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-AES-128-GCM-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDH-ECDSA-WITH-AES-128-GCM-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDH-ECDSA-WITH-AES-256-GCM-SHA384])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-RSA-WITH-AES-128-GCM-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-RSA-WITH-AES-256-GCM-SHA384])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDH-RSA-WITH-AES-128-GCM-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDH-RSA-WITH-AES-256-GCM-SHA384])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-RSA-WITH-AES-128-CCM-8])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-RSA-WITH-AES-256-CCM-8])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-AES-128-CCM])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-AES-128-CCM-8])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-ECDHE-ECDSA-WITH-AES-256-CCM-8])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-AES-128-CCM])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-AES-256-CCM])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-AES-128-CCM-8])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-PSK-WITH-AES-256-CCM-8])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-DHE-PSK-WITH-AES-128-CCM])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-DHE-PSK-WITH-AES-256-CCM])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-AES-128-CCM-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-AES-128-CCM-8-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-AES-128-GCM-SHA256])},
+     {'scen23, ruleLabel('buildServerHelloV2), setM(#cipherSuites, mv[TLS-AES-256-GCM-SHA384])} .
+
+  op scenarioProperty23 : -> ScenarioProperty .
+  eq scenarioProperty23 = (anyStep *) ; ruleLabel('scen23) ; (anyStep *) ; (N2 . SI . @errorLog = av[illegal-parameter]) .
+
+  op behaviorDeviationSpecification24 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification24 =
+     {'scen24, ruleLabel('buildServerHelloV2), setM(#compressions, mv[zlib-compression])},
+     {'scen24, ruleLabel('buildServerHelloV2), setM(#compressions, mv[no-compression])} .
+
+  op scenarioProperty24 : -> ScenarioProperty .
+  eq scenarioProperty24 = (anyStep *) ; ruleLabel('scen24) ; (anyStep *) ; (N2 . SI . @errorLog = av[illegal-parameter]) .
+
+  op behaviorDeviationSpecification25 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification25 =
+     {'scen25, ruleLabel('buildServerHelloV2), add(#supported-versions, mv[TLS-11])},
+     {'scen25, ruleLabel('buildServerHelloV2), add(#supported-versions, mv[TLS-12])},
+     {'scen25, ruleLabel('buildServerHelloV2), add(#supported-versions, mv[TLS-13])} .
+
+  op scenarioProperty25 : -> ScenarioProperty .
+  eq scenarioProperty25 = (anyStep *) ; ruleLabel('scen25) ; (anyStep *) ; (N2 . SI . @errorLog = av[unsupported-extension]) .
+
+  op behaviorDeviationSpecification26 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification26 =
+     {'scen26, ruleLabel('buildServerHelloV2), add(#supported-groups, mv[ffdhe2048])},
+     {'scen26, ruleLabel('buildServerHelloV2), add(#supported-groups, mv[ffdhe3072])},
+     {'scen26, ruleLabel('buildServerHelloV2), add(#supported-groups, mv[ffdhe4096])},
+     {'scen26, ruleLabel('buildServerHelloV2), add(#supported-groups, mv[ffdhe6144])},
+     {'scen26, ruleLabel('buildServerHelloV2), add(#supported-groups, mv[ffdhe8192])},
+     {'scen26, ruleLabel('buildServerHelloV2), add(#supported-groups, mv[secp160k1])},
+     {'scen26, ruleLabel('buildServerHelloV2), add(#supported-groups, mv[secp160r1])},
+     {'scen26, ruleLabel('buildServerHelloV2), add(#supported-groups, mv[secp160r2])},
+     {'scen26, ruleLabel('buildServerHelloV2), add(#supported-groups, mv[secp192k1])},
+     {'scen26, ruleLabel('buildServerHelloV2), add(#supported-groups, mv[secp192r1])},
+     {'scen26, ruleLabel('buildServerHelloV2), add(#supported-groups, mv[secp224r1])},
+     {'scen26, ruleLabel('buildServerHelloV2), add(#supported-groups, mv[secp224k1])},
+     {'scen26, ruleLabel('buildServerHelloV2), add(#supported-groups, mv[secp256r1])},
+     {'scen26, ruleLabel('buildServerHelloV2), add(#supported-groups, mv[secp256k1])},
+     {'scen26, ruleLabel('buildServerHelloV2), add(#supported-groups, mv[secp384r1])},
+     {'scen26, ruleLabel('buildServerHelloV2), add(#supported-groups, mv[secp521r1])} .
+
+  op scenarioProperty26 : -> ScenarioProperty .
+  eq scenarioProperty26 = (anyStep *) ; ruleLabel('scen26) ; (anyStep *) ; (N2 . SI . @errorLog = av[illegal-parameter]) .
+
+  op behaviorDeviationSpecification27 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification27 =
+     {'scen27, ruleLabel('buildServerHelloV2), add(#signature-algorithms, mv[{rsa,sha}])},
+     {'scen27, ruleLabel('buildServerHelloV2), add(#signature-algorithms, mv[{rsa,sha224}])},
+     {'scen27, ruleLabel('buildServerHelloV2), add(#signature-algorithms, mv[{rsa,sha256}])},
+     {'scen27, ruleLabel('buildServerHelloV2), add(#signature-algorithms, mv[{rsa,sha384}])},
+     {'scen27, ruleLabel('buildServerHelloV2), add(#signature-algorithms, mv[{rsa,sha512}])},
+     {'scen27, ruleLabel('buildServerHelloV2), add(#signature-algorithms, mv[{rsa,md5}])},
+     {'scen27, ruleLabel('buildServerHelloV2), add(#signature-algorithms, mv[{ecdsa,sha}])},
+     {'scen27, ruleLabel('buildServerHelloV2), add(#signature-algorithms, mv[{ecdsa,sha224}])},
+     {'scen27, ruleLabel('buildServerHelloV2), add(#signature-algorithms, mv[{ecdsa,sha256}])},
+     {'scen27, ruleLabel('buildServerHelloV2), add(#signature-algorithms, mv[{ecdsa,sha384}])},
+     {'scen27, ruleLabel('buildServerHelloV2), add(#signature-algorithms, mv[{ecdsa,sha512}])},
+     {'scen27, ruleLabel('buildServerHelloV2), add(#signature-algorithms, mv[{dsa,sha}])},
+     {'scen27, ruleLabel('buildServerHelloV2), add(#signature-algorithms, mv[{dsa,sha224}])},
+     {'scen27, ruleLabel('buildServerHelloV2), add(#signature-algorithms, mv[{dsa,sha256}])},
+     {'scen27, ruleLabel('buildServerHelloV2), add(#signature-algorithms, mv[{dsa,sha384}])},
+     {'scen27, ruleLabel('buildServerHelloV2), add(#signature-algorithms, mv[{dsa,sha512}])} .
+
+  op scenarioProperty27 : -> ScenarioProperty .
+  eq scenarioProperty27 = (anyStep *) ; ruleLabel('scen27) ; (anyStep *) ; (N2 . SI . @errorLog = av[illegal-parameter]) .
+
+  op behaviorDeviationSpecification28 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification28 =
+     {'scen28, ruleLabel('buildServerHelloV2), add(#psk-key-exchange-mode, mv[psk-ke])},
+     {'scen28, ruleLabel('buildServerHelloV2), add(#psk-key-exchange-mode, mv[psk-dhe-ke])} .
+
+  op scenarioProperty28 : -> ScenarioProperty .
+  eq scenarioProperty28 = (anyStep *) ; ruleLabel('scen28) ; (anyStep *) ; (N2 . SI . @errorLog = av[unsupported-extension]) .
+
+  op behaviorDeviationSpecification29 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification29 =
+     {'scen29, ruleLabel('buildServerHelloV2), add(#early-data, mv[true])} .
+
+  op scenarioProperty29 : -> ScenarioProperty .
+  eq scenarioProperty29 = (anyStep *) ; ruleLabel('scen29) ; (anyStep *) ; (N2 . SI . @errorLog = av[unsupported-extension]) .
+
+  op behaviorDeviationSpecification30 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification30 =
+     {'scen30, ruleLabel('buildServerHelloV2), add(#post-handshake, mv[true])} .
+
+  op scenarioProperty30 : -> ScenarioProperty .
+  eq scenarioProperty30 = (anyStep *) ; ruleLabel('scen30) ; (anyStep *) ; (N2 . SI . @errorLog = av[unsupported-extension]) .
+
+  op behaviorDeviationSpecification31 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification31 =
+     {'scen31, ruleLabel('buildServerHelloV2), add(#selected-identifier, mv[0])} .
+
+  op scenarioProperty31 : -> ScenarioProperty .
+  eq scenarioProperty31 = (anyStep *) ; ruleLabel('scen31) ; (anyStep *) ; (N2 . SI . @errorLog = av[unsupported-extension]) .
+
+  op behaviorDeviationSpecification32 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification32 =
+     {'scen32, ruleLabel('buildCertificateRequestV2), setM(#handshakeType, mv[client-hello])},
+     {'scen32, ruleLabel('buildCertificateRequestV2), setM(#handshakeType, mv[server-hello])},
+     {'scen32, ruleLabel('buildCertificateRequestV2), setM(#handshakeType, mv[certificate])},
+     {'scen32, ruleLabel('buildCertificateRequestV2), setM(#handshakeType, mv[server-key-exchange])},
+     {'scen32, ruleLabel('buildCertificateRequestV2), setM(#handshakeType, mv[server-hello-done])},
+     {'scen32, ruleLabel('buildCertificateRequestV2), setM(#handshakeType, mv[client-key-exchange])},
+     {'scen32, ruleLabel('buildCertificateRequestV2), setM(#handshakeType, mv[certificate-verify])},
+     {'scen32, ruleLabel('buildCertificateRequestV2), setM(#handshakeType, mv[finished])},
+     {'scen32, ruleLabel('buildCertificateRequestV2), setM(#handshakeType, mv[encrypted-extension])},
+     {'scen32, ruleLabel('buildCertificateRequestV2), setM(#handshakeType, mv[hello-retry-request])},
+     {'scen32, ruleLabel('buildCertificateRequestV2), setM(#handshakeType, mv[new-session-ticket])},
+     {'scen32, ruleLabel('buildCertificateRequestV2), setM(#handshakeType, mv[key-update-request])} .
+
+  op scenarioProperty32 : -> ScenarioProperty .
+  eq scenarioProperty32 = (anyStep *) ; ruleLabel('scen32) ; (anyStep *) ; (N2 . SI . @errorLog = av[unexpected-message]) .
+
+  op behaviorDeviationSpecification33 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification33 =
+     {'scen33, ruleLabel('buildServerCertificateV2), setM(#handshakeType, mv[client-hello])},
+     {'scen33, ruleLabel('buildServerCertificateV2), setM(#handshakeType, mv[server-hello])},
+     {'scen33, ruleLabel('buildServerCertificateV2), setM(#handshakeType, mv[server-key-exchange])},
+     {'scen33, ruleLabel('buildServerCertificateV2), setM(#handshakeType, mv[certificate-request])},
+     {'scen33, ruleLabel('buildServerCertificateV2), setM(#handshakeType, mv[server-hello-done])},
+     {'scen33, ruleLabel('buildServerCertificateV2), setM(#handshakeType, mv[client-key-exchange])},
+     {'scen33, ruleLabel('buildServerCertificateV2), setM(#handshakeType, mv[certificate-verify])},
+     {'scen33, ruleLabel('buildServerCertificateV2), setM(#handshakeType, mv[finished])},
+     {'scen33, ruleLabel('buildServerCertificateV2), setM(#handshakeType, mv[encrypted-extension])},
+     {'scen33, ruleLabel('buildServerCertificateV2), setM(#handshakeType, mv[hello-retry-request])},
+     {'scen33, ruleLabel('buildServerCertificateV2), setM(#handshakeType, mv[new-session-ticket])},
+     {'scen33, ruleLabel('buildServerCertificateV2), setM(#handshakeType, mv[key-update-request])} .
+
+  op scenarioProperty33 : -> ScenarioProperty .
+  eq scenarioProperty33 = (anyStep *) ; ruleLabel('scen33) ; (anyStep *) ; (N2 . SI . @errorLog = av[unexpected-message]) .
+
+  op behaviorDeviationSpecification34 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification34 =
+     {'scen34, ruleLabel('buildServerCertificateV2), setM(#contentType, mv[change-cipher-spec])},
+     {'scen34, ruleLabel('buildServerCertificateV2), setM(#contentType, mv[alert])},
+     {'scen34, ruleLabel('buildServerCertificateV2), setM(#contentType, mv[application-data])} .
+
+  op scenarioProperty34 : -> ScenarioProperty .
+  eq scenarioProperty34 = (anyStep *) ; ruleLabel('scen34) ; (anyStep *) ; (N2 . SI . @errorLog = av[unexpected-message]) .
+
+  op behaviorDeviationSpecification35 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification35 =
+     {'scen35, ruleLabel('buildServerCertificateV2), setM(#certificate-list, emptyCertificateList)} .
+
+  op scenarioProperty35 : -> ScenarioProperty .
+  eq scenarioProperty35 = (anyStep *) ; ruleLabel('scen35) ; (anyStep *) ; (N2 . SI . @errorLog = av[decode-error]) .
+
+  op behaviorDeviationSpecification36 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification36 =
+     {'scen36, ruleLabel('buildServerKeyExchangeV2), setM(#handshakeType, mv[client-hello])},
+     {'scen36, ruleLabel('buildServerKeyExchangeV2), setM(#handshakeType, mv[server-hello])},
+     {'scen36, ruleLabel('buildServerKeyExchangeV2), setM(#handshakeType, mv[certificate])},
+     {'scen36, ruleLabel('buildServerKeyExchangeV2), setM(#handshakeType, mv[certificate-request])},
+     {'scen36, ruleLabel('buildServerKeyExchangeV2), setM(#handshakeType, mv[server-hello-done])},
+     {'scen36, ruleLabel('buildServerKeyExchangeV2), setM(#handshakeType, mv[client-key-exchange])},
+     {'scen36, ruleLabel('buildServerKeyExchangeV2), setM(#handshakeType, mv[certificate-verify])},
+     {'scen36, ruleLabel('buildServerKeyExchangeV2), setM(#handshakeType, mv[finished])},
+     {'scen36, ruleLabel('buildServerKeyExchangeV2), setM(#handshakeType, mv[encrypted-extension])},
+     {'scen36, ruleLabel('buildServerKeyExchangeV2), setM(#handshakeType, mv[hello-retry-request])},
+     {'scen36, ruleLabel('buildServerKeyExchangeV2), setM(#handshakeType, mv[new-session-ticket])},
+     {'scen36, ruleLabel('buildServerKeyExchangeV2), setM(#handshakeType, mv[key-update-request])} .
+
+  op scenarioProperty36 : -> ScenarioProperty .
+  eq scenarioProperty36 = (anyStep *) ; ruleLabel('scen36) ; (anyStep *) ; (N2 . SI . @errorLog = av[unexpected-message]) .
+
+  op behaviorDeviationSpecification37 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification37 =
+     {'scen37, ruleLabel('buildServerKeyExchangeV2), setM(#contentType, mv[change-cipher-spec])},
+     {'scen37, ruleLabel('buildServerKeyExchangeV2), setM(#contentType, mv[alert])},
+     {'scen37, ruleLabel('buildServerKeyExchangeV2), setM(#contentType, mv[application-data])} .
+
+  op scenarioProperty37 : -> ScenarioProperty .
+  eq scenarioProperty37 = (anyStep *) ; ruleLabel('scen37) ; (anyStep *) ; (N2 . SI . @errorLog = av[unexpected-message]) .
+
+  op behaviorDeviationSpecification38 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification38 =
+     {'scen38, ruleLabel('buildServerHelloDoneV2), setM(#handshakeType, mv[client-hello])},
+     {'scen38, ruleLabel('buildServerHelloDoneV2), setM(#handshakeType, mv[server-hello])},
+     {'scen38, ruleLabel('buildServerHelloDoneV2), setM(#handshakeType, mv[certificate])},
+     {'scen38, ruleLabel('buildServerHelloDoneV2), setM(#handshakeType, mv[server-key-exchange])},
+     {'scen38, ruleLabel('buildServerHelloDoneV2), setM(#handshakeType, mv[certificate-request])},
+     {'scen38, ruleLabel('buildServerHelloDoneV2), setM(#handshakeType, mv[client-key-exchange])},
+     {'scen38, ruleLabel('buildServerHelloDoneV2), setM(#handshakeType, mv[certificate-verify])},
+     {'scen38, ruleLabel('buildServerHelloDoneV2), setM(#handshakeType, mv[finished])},
+     {'scen38, ruleLabel('buildServerHelloDoneV2), setM(#handshakeType, mv[encrypted-extension])},
+     {'scen38, ruleLabel('buildServerHelloDoneV2), setM(#handshakeType, mv[hello-retry-request])},
+     {'scen38, ruleLabel('buildServerHelloDoneV2), setM(#handshakeType, mv[new-session-ticket])},
+     {'scen38, ruleLabel('buildServerHelloDoneV2), setM(#handshakeType, mv[key-update-request])} .
+
+  op scenarioProperty38 : -> ScenarioProperty .
+  eq scenarioProperty38 = (anyStep *) ; ruleLabel('scen38) ; (anyStep *) ; (N2 . SI . @errorLog = av[unexpected-message]) .
+
+  op behaviorDeviationSpecification39 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification39 =
+     {'scen39, ruleLabel('buildServerHelloDoneV2), setM(#contentType, mv[change-cipher-spec])},
+     {'scen39, ruleLabel('buildServerHelloDoneV2), setM(#contentType, mv[alert])},
+     {'scen39, ruleLabel('buildServerHelloDoneV2), setM(#contentType, mv[application-data])} .
+
+  op scenarioProperty39 : -> ScenarioProperty .
+  eq scenarioProperty39 = (anyStep *) ; ruleLabel('scen39) ; (anyStep *) ; (N2 . SI . @errorLog = av[unexpected-message]) .
+
+  op behaviorDeviationSpecification40 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification40 = empty .
+
+  op scenarioProperty40 : -> ScenarioProperty .
+  eq scenarioProperty40 = (anyStep *) ; ((N1 . CI . @clientState = av[V2C-CLOSED]) and (N2 . SI . @serverState = av[V2S-CLOSED])) .
+
+  op behaviorDeviationSpecification41 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification41 = empty .
+
+  op scenarioProperty41 : -> ScenarioProperty .
+  eq scenarioProperty41 =
+     (anyStep *) ;
+     (ruleLabel('buildClientHelloV2) and appliedNode(client) and featureMap(@reconnectInProgress |-> av[true])) ;
+     (ruleLabel('processClientHelloV2) and appliedNode(server) and featureMap(@reconnectInProgress |-> av[true])) ;
+     (ruleLabel('buildServerHelloV2) and appliedNode(server) and featureMap(@sessionResumption |-> av[true])) ;
+     (ruleLabel('processServerHelloV2) and appliedNode(client) and featureMap(@reconnectInProgress |-> av[true])) ;
+     (ruleLabel('buildServerChangeCipherSpecV2) and appliedNode(server) and featureMap(@sessionResumption |-> av[true])) ;
+     (ruleLabel('processServerChangeCipherSpecV2) and appliedNode(client) and featureMap(@sessionResumption |-> av[true])) ;
+     (ruleLabel('buildServerFinishedV2) and appliedNode(server) and featureMap(@sessionResumption |-> av[true])) ;
+     (ruleLabel('processServerFinishedV2) and appliedNode(client) and featureMap(@sessionResumption |-> av[true])) ;
+     (ruleLabel('buildClientChangeCipherSpecV2) and appliedNode(client) and featureMap(@sessionResumption |-> av[true])) ;
+     (ruleLabel('processClientChangeCipherSpecV2) and appliedNode(server) and featureMap(@sessionResumption |-> av[true])) ;
+     (ruleLabel('buildClientFinishedV2) and appliedNode(client) and featureMap(@sessionResumption |-> av[true])) ;
+     (ruleLabel('processClientFinishedV2) and appliedNode(server) and featureMap(@sessionResumption |-> av[true])) ;
+     (anyStep *) ;
+     ((N1 . CI . @clientState = av[V2C-CLOSED]) and (N2 . SI . @serverState = av[V2S-CLOSED])) .
+
+  op behaviorDeviationSpecification42 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification42 =
+     {'scen42,
+       ruleLabel('buildClientHelloV2) and appliedNode(client) and featureMap(@reconnectInProgress |-> av[true]),
+       setM(#sessionId, mv[nonce(N1 . CI, 5246)])} .
+
+  op scenarioProperty42 : -> ScenarioProperty .
+  eq scenarioProperty42 =
+     (anyStep *) ;
+     ruleLabel('scen42) ;
+     (anyStep *) ;
+     (ruleLabel('buildServerHelloV2) and appliedNode(server) and featureMap(@sessionResumption |-> av[false])) ;
+     (anyStep *) ;
+     ((N1 . CI . @clientState = av[V2C-CLOSED]) and (N2 . SI . @serverState = av[V2S-CLOSED])) .
+
+  op behaviorDeviationSpecification43 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification43 = empty .
+
+  op scenarioProperty43 : -> ScenarioProperty .
+  eq scenarioProperty43 =
+     (anyStep *) ;
+     (ruleLabel('buildClientHelloV2) and appliedNode(client) and featureMap(@secureRenegotiation |-> av[true])) ;
+     (anyStep *) ;
+     (ruleLabel('buildServerHelloV2) and appliedNode(server) and featureMap(@secureRenegotiation |-> av[true])) ;
+     (anyStep *) ;
+     ((N1 . CI . @clientState = av[V2C-CLOSED]) and (N2 . SI . @serverState = av[V2S-CLOSED])) .
+
+  --- Negative secure-renegotiation reachability checks.
+  --- Scenarios 44 and 45 intentionally produce nil.  They remove the
+  --- renegotiation-info extension from the ServerHello/ClientHello path and
+  --- require progress to processServerHelloV2; the RFC checks should reject
+  --- the malformed renegotiation state before that process step is reachable.
+
+  op behaviorDeviationSpecification44 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification44 =
+     {'scen44, ruleLabel('buildServerHelloV2), remove(#renegotiation-info)} .
+
+  op scenarioProperty44 : -> ScenarioProperty .
+  eq scenarioProperty44 =
+     (anyStep *) ;
+     ruleLabel('scen44) ;
+     (anyStep *) ;
+     (ruleLabel('processServerHelloV2) and appliedNode(client)) .
+
+  op behaviorDeviationSpecification45 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification45 =
+     {'scen45, ruleLabel('buildClientHelloV2), remove(#renegotiation-info)} .
+
+  op scenarioProperty45 : -> ScenarioProperty .
+  eq scenarioProperty45 =
+     (anyStep *) ;
+     ruleLabel('scen45) ;
+     (anyStep *) ;
+     (ruleLabel('processServerHelloV2) and appliedNode(client)) .
+
+  --- TLS-Anvil: client.tls12.rfc5246.ServerKeyExchange.invalidServerKeyExchangeSignature.
+  --- The server sends a syntactically present but invalid ServerKeyExchange
+  --- signature.  The client must reject it at the ServerKeyExchange RFC check.
+  op behaviorDeviationSpecification46 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification46 =
+     {'scen46, ruleLabel('buildServerKeyExchangeV2), setM(#signature, mv[noNonce])} .
+
+  op scenarioProperty46 : -> ScenarioProperty .
+  eq scenarioProperty46 =
+     (anyStep *) ;
+     ruleLabel('scen46) ;
+     (anyStep *) ;
+     (N2 . SI . @errorLog = av[decrypt-error]) .
+
+  --- TLS-Anvil: client.tls12.rfc5246.ClientCertificateMessage.clientMustSendCertMsg.
+  --- After CertificateRequest, the client omits the required Certificate
+  --- message.  skip() removes the built Certificate from the link and
+  --- transcript while allowing the local client state to continue.
+  op behaviorDeviationSpecification47 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification47 =
+     {'scen47, ruleLabel('buildClientCertificateV2), skip()} .
+
+  op scenarioProperty47 : -> ScenarioProperty .
+  eq scenarioProperty47 =
+     (anyStep *) ;
+     ruleLabel('scen47) ;
+     (anyStep *) ;
+     (N1 . CI . @errorLog = av[unexpected-message]) .
+
+  --- TLS-Anvil: server.tls12.rfc5246.ClientHello.offerManyCipherSuites.
+  --- A large ClientHello cipher_suites vector that still includes the common
+  --- negotiated suite should be accepted and complete normally.
+  op behaviorDeviationSpecification48 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification48 =
+     {'scen48, ruleLabel('buildClientHelloV2),
+       add(#cipherSuites,
+         mv[TLS-DHE-RSA-WITH-AES-128-CBC-SHA
+            TLS-DHE-RSA-WITH-AES-256-CBC-SHA
+            TLS-ECDHE-RSA-WITH-AES-128-GCM-SHA256
+            TLS-ECDHE-RSA-WITH-AES-256-GCM-SHA384
+            TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384
+            TLS-RSA-WITH-AES-128-GCM-SHA256
+            TLS-RSA-WITH-AES-256-GCM-SHA384])} .
+
+  op scenarioProperty48 : -> ScenarioProperty .
+  eq scenarioProperty48 =
+     (anyStep *) ;
+     ruleLabel('scen48) ;
+     (anyStep *) ;
+     ((N1 . CI . @clientState = av[V2C-CLOSED]) and
+      (N2 . SI . @serverState = av[V2S-CLOSED])) .
+
+  --- TLS-Anvil: server.tls12.rfc5246.SignatureAlgorithms.offerManyAlgorithms.
+  --- A large signature_algorithms extension that still includes the common
+  --- ECDSA/SHA-256 choice should not prevent a normal handshake.
+  op behaviorDeviationSpecification49 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification49 =
+     {'scen49, ruleLabel('buildClientHelloV2),
+       setM(#signature-algorithms,
+         mv[{ecdsa,sha256}
+            {rsa,sha}
+            {rsa,sha224}
+            {rsa,sha256}
+            {rsa,sha384}
+            {rsa,sha512}
+            {ecdsa,sha224}
+            {ecdsa,sha384}
+            {ecdsa,sha512}
+            {dsa,sha256}])} .
+
+  op scenarioProperty49 : -> ScenarioProperty .
+  eq scenarioProperty49 =
+     (anyStep *) ;
+     ruleLabel('scen49) ;
+     (anyStep *) ;
+     ((N1 . CI . @clientState = av[V2C-CLOSED]) and
+      (N2 . SI . @serverState = av[V2S-CLOSED])) .
+
+  --- TLS-Anvil: server.tls12.rfc5246.ServerKeyExchange.signatureIsValid.
+  --- Baseline reachability check for a valid ServerKeyExchange signature.
+  op behaviorDeviationSpecification50 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification50 = empty .
+
+  op scenarioProperty50 : -> ScenarioProperty .
+  eq scenarioProperty50 =
+     (anyStep *) ;
+     (ruleLabel('buildServerKeyExchangeV2) and appliedNode(server)) ;
+     (anyStep *) ;
+     (ruleLabel('processServerKeyExchangeV2) and appliedNode(client)) ;
+     (anyStep *) ;
+     ((N1 . CI . @clientState = av[V2C-CLOSED]) and
+      (N2 . SI . @serverState = av[V2S-CLOSED])) .
+
+  --- TLS-Anvil: client.tls12.rfc5246.ServerKeyExchange.acceptsUnproposedNamedGroup.
+  --- After receiving a ClientHello with secp256r1, the server selects an
+  --- unoffered group for ServerKeyExchange.  The client must reject the SKE.
+  op behaviorDeviationSpecification51 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification51 =
+     {'scen51, ruleLabel('processClientHelloV2),
+       setF(@selectedSupportedGroups, av[secp384r1])} .
+
+  op scenarioProperty51 : -> ScenarioProperty .
+  eq scenarioProperty51 =
+     (anyStep *) ;
+     ruleLabel('scen51) ;
+     (anyStep *) ;
+     (N2 . SI . @errorLog = av[illegal-parameter]) .
+endsm

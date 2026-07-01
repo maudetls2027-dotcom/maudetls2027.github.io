@@ -1,0 +1,47 @@
+load ../rq1/common.maude
+
+smod RQ2-COMMON is
+  protecting RQ1-COMMON .
+  protecting BOOL .
+  protecting NAT .
+  protecting META-LEVEL .
+
+  vars CWA0 CWA1 : ConfWithAction .
+  var PV : ProtocolVersion .
+  var TCONF : TLSConfiguration .
+  var BSS : Set{BehaviorDVSpec} .
+  var SPR : ScenarioProperty .
+  var MODULE : Module .
+  var RESULT : Term .
+  var TYPE : Type .
+  vars N CAP : Nat .
+
+  op rq2HasSolution : ProtocolVersion ConfWithAction TLSConfiguration Set{BehaviorDVSpec} ScenarioProperty Nat -> Bool .
+
+  ceq rq2HasSolution(PV, CWA0, TCONF, BSS, SPR, N) = true
+   if MODULE := genThreatModule(PV, BSS)
+   /\ CWA1 := initializeCWA(TCONF, CWA0)
+   /\ {RESULT, TYPE} := metaSrewrite(MODULE, upTerm(CWA1), 'scenarioProperty[[upTerm(SPR)]], breadthFirst, N) .
+
+  ceq rq2HasSolution(PV, CWA0, TCONF, BSS, SPR, N) = false
+   if MODULE := genThreatModule(PV, BSS)
+   /\ CWA1 := initializeCWA(TCONF, CWA0)
+   /\ failure == metaSrewrite(MODULE, upTerm(CWA1), 'scenarioProperty[[upTerm(SPR)]], breadthFirst, N) .
+
+  --- Exact count: enumerate until metaSrewrite returns failure for index N.
+  op rq2CountFrom : ProtocolVersion ConfWithAction TLSConfiguration Set{BehaviorDVSpec} ScenarioProperty Nat -> Nat .
+  ceq rq2CountFrom(PV, CWA0, TCONF, BSS, SPR, N)
+    = s rq2CountFrom(PV, CWA0, TCONF, BSS, SPR, s N)
+   if rq2HasSolution(PV, CWA0, TCONF, BSS, SPR, N) = true .
+  ceq rq2CountFrom(PV, CWA0, TCONF, BSS, SPR, N) = 0
+   if rq2HasSolution(PV, CWA0, TCONF, BSS, SPR, N) = false .
+
+  --- Capped count for smoke tests and bounded exploratory runs.
+  op rq2CountUpTo : ProtocolVersion ConfWithAction TLSConfiguration Set{BehaviorDVSpec} ScenarioProperty Nat Nat -> Nat .
+  eq rq2CountUpTo(PV, CWA0, TCONF, BSS, SPR, N, 0) = 0 .
+  ceq rq2CountUpTo(PV, CWA0, TCONF, BSS, SPR, N, s CAP)
+    = s rq2CountUpTo(PV, CWA0, TCONF, BSS, SPR, s N, CAP)
+   if rq2HasSolution(PV, CWA0, TCONF, BSS, SPR, N) = true .
+  ceq rq2CountUpTo(PV, CWA0, TCONF, BSS, SPR, N, s CAP) = 0
+   if rq2HasSolution(PV, CWA0, TCONF, BSS, SPR, N) = false .
+endsm

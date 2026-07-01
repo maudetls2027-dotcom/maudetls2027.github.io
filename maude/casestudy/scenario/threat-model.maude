@@ -1,0 +1,1082 @@
+omod MODIFY-MESSAGE-AND-OBJECT is
+  protecting MESSAGE-MODIFICATION .
+  protecting TLS-MESSAGE-CONTENT .
+  protecting TLS-MESSAGE-CHANGE-OPERATION .
+  protecting CONFIGURATION-WITH-ACTION .
+  protecting TLS-OBJECT .
+  protecting BUILD-RECORD-LAYER .
+
+  var OBJ : Object .
+  vars PV PV' : ProtocolVersion .
+  vars SID SID' NONCE NONCE' : Nonce .
+  vars SID? NONCE? : Nonce? .
+  vars PVL PVL' PVL'' PVL''' : List{ProtocolVersion} .
+  vars CSL CSL' CSL'' CSL''' : List{CipherSuite} .
+  vars CML CML' CML'' CML''' : List{CompressionMethod} .
+  vars SCL SCL' SCL'' SCL''' : List{SignatureAlgorithm} .
+  vars NGL NGL' NGL'' NGL''' : List{NamedGroup} .
+  vars PEML PEML' PEML'' PEML''' : List{PreSharedKeyExchangeMode} .
+  vars CERTL CERTL' CERTL'' CERTL''' : List{Certificate} .
+  vars KSL KSL' KSL'' KSL''' : List{KeyShareEntry} .
+  vars CTL CTL' CTL'' CTL''' : List{CertificateType} .
+  var TICKETL : List{TicketId} .
+  var TICKET : TicketId .
+  var BINDERL : List{Nonce} .
+  vars NG NG' : NamedGroup .
+  vars SC SC' : SignatureAlgorithm .
+  vars KS KS' : KeyShareEntry .
+  vars PEM PEM' : PreSharedKeyExchangeMode .
+  vars TI TI' SI NI CI : TId .
+  var EXT : Extension .
+  vars N N' : Nat .
+  var FF : FiniteField .
+  var NC : NamedCurve .
+  var DHC : DHComputation .
+  vars SZ SZ' : MsgSize .
+  var OP : ChangeOperation .
+  var HALGO : HashAlgorithm .
+  vars MC MC' MC'' EMC REST REST' : MsgContent .
+  vars MS MS' MS'' MSGS : List{TLSMsg} .
+  var OIDL : List{TId} .
+  var AFL : List{FormalAction} .
+  var MM : MessageModification .
+  var TVA : TLSMsgValue .
+  var KEY : Key .
+  vars CT CT' : ContentType .
+  vars HT HT' : HandshakeType .
+  var CONF : Configuration .
+  vars HTY1 HTY2 : HandshakeType .
+  var ACTL : List{FormalAction} .
+  var ACT : FormalAction .
+
+  op modifyMsg : MsgContent MessageModification ~> MsgContent .
+  eq modifyMsg(contentType(CT) MC, {content-type, replace(v[CT], v[CT'])}) = contentType(CT') MC .
+  eq modifyMsg(handshakeType(HT) MC, {handshake-type, replace(v[HT], v[HT'])}) = handshakeType(HT') MC .
+  eq modifyMsg(protocol(PV) MC, {version, replace(v[PV], v[PV'])}) = protocol(PV') MC .
+
+  --- encrypted message
+  eq modifyMsg(MC encrypt(KEY, MC'), MM) = MC encrypt(KEY, modifyMsg(MC', MM)) [owise] .
+
+  eq modifyMsg(sessionId(SID?) MC, {session-id, random(true, TI, N)}) = sessionId(nonce(TI, N)) MC .
+  eq modifyMsg(sessionId(SID?) MC, {session-id, random(false, TI, N)}) = sessionId(noNonce) MC .
+  eq modifyMsg(signature(encrypt(KEY, MC')) MC, {signature, random(true, TI, N)}) = signature(encrypt(KEY, empty)) MC .
+  eq modifyMsg(signature(encrypt(KEY, MC')) MC, {signature, random(false, TI, N)}) = signature(encrypt(KEY, empty)) MC .
+  eq modifyMsg(verifyData(NONCE) MC, {verify-data, random(true, TI, N)}) = verifyData(noNonce) MC .
+  eq modifyMsg(verifyData(NONCE) MC, {verify-data, random(false, TI, N)}) = verifyData(noNonce) MC .
+  eq modifyMsg(verifyData(NONCE,NONCE') MC, {verify-data, random(true, TI, N)}) = verifyData(noNonce,noNonce) MC .
+  eq modifyMsg(verifyData(NONCE,NONCE') MC, {verify-data, random(false, TI, N)}) = verifyData(noNonce,noNonce) MC .
+
+  eq modifyMsg(cipherSuites(CSL) MC, {cipher-suites, add(v[CSL'])}) = cipherSuites(CSL CSL') MC .
+  eq modifyMsg(cipherSuites(CSL CSL' CSL'') MC, {cipher-suites, delete(v[CSL'])}) = cipherSuites(CSL CSL'') MC .
+  eq modifyMsg(cipherSuites(CSL CSL' CSL'') MC, {cipher-suites, replace(v[CSL'],v[CSL'''])}) = cipherSuites(CSL CSL''' CSL'') MC .
+
+  eq modifyMsg(compressions(CML) MC, {compression-methods, add(v[CML'])}) = compressions(CML CML') MC .
+  eq modifyMsg(compressions(CML CML' CML'') MC, {compression-methods, delete(v[CML'])}) = compressions(CML CML'') MC .
+  eq modifyMsg(compressions(CML CML' CML'') MC, {compression-methods, replace(v[CML'],v[CML'''])}) = compressions(CML CML''' CML'') MC .
+
+  eq modifyMsg(certificates(CERTL) MC, {certificate-list, add(v[CERTL'])}) = certificates(CERTL CERTL') MC .
+  eq modifyMsg(certificates(CERTL CERTL' CERTL'') MC, {certificate-list, delete(v[CERTL'])}) = certificates(CERTL CERTL'') MC .
+  eq modifyMsg(certificates(CERTL CERTL' CERTL'') MC, {certificate-list, replace(v[CERTL'], v[CERTL'''])}) = certificates(CERTL CERTL''' CERTL'') MC .
+
+  eq modifyMsg(certificateTypes(CTL) MC, {certificate-type, add(v[CTL'])}) = certificateTypes(CTL CTL') MC .
+  eq modifyMsg(certificateTypes(CTL CTL' CTL'') MC, {certificate-type, delete(v[CTL'])}) = certificateTypes(CTL CTL'') MC .
+  eq modifyMsg(certificateTypes(CTL CTL' CTL'') MC, {certificate-type, replace(v[CTL'], v[CTL'''])}) = certificateTypes(CTL CTL''' CTL'') MC .
+
+  eq modifyMsg(certificateAlgos(SCL) MC, {certificate-algo, add(v[SCL'])}) = certificateAlgos(SCL SCL') MC .
+  eq modifyMsg(certificateAlgos(SCL SCL' SCL'') MC, {certificate-algo, delete(v[SCL'])}) = certificateAlgos(SCL SCL'') MC .
+  eq modifyMsg(certificateAlgos(SCL SCL' SCL'') MC, {certificate-algo, replace(v[SCL'], v[SCL'''])}) = certificateAlgos(SCL SCL''' SCL'') MC .
+
+  eq modifyMsg(extensions(key-shares(KSL) EXT) MC, {key-shares, add(v[KSL'])}) = extensions(key-shares(KSL KSL') EXT) MC .
+ ceq modifyMsg(extensions(key-shares(KSL) EXT) MC, {key-shares, delete(v[KSL'])}) = extensions(key-shares(KSL'') EXT) MC if KSL'' := deleteKSL(KSL, KSL') /\ KSL =/= KSL'' .
+ ceq modifyMsg(extensions(key-shares(KSL) EXT) MC, {key-shares, replace(v[KSL'], v[KSL''])}) = extensions(key-shares(KSL''' KSL'') EXT) MC if KSL''' := deleteKSL(KSL, KSL') /\ KSL =/= KSL''' .
+  eq modifyMsg(extensions(key-shares(NG) EXT) MC, {key-shares-groups, replace(v[NG], v[NG'])}) = extensions(key-shares(NG') EXT) MC . 
+
+  op deleteKSL : List{KeyShareEntry} List{KeyShareEntry} -> List{KeyShareEntry} .
+  eq deleteKSL(KSL {FF, dh(FF, NONCE)} KSL', KSL'' {FF, dh(FF, NONCE')} KSL''') = deleteKSL(KSL KSL', KSL'' {FF, dh(FF, NONCE')} KSL''') .
+  eq deleteKSL(KSL {NC, ecdh(NC, NONCE)} KSL', KSL'' {NC, ecdh(NC, NONCE')} KSL''') = deleteKSL(KSL KSL', KSL'' {NC, ecdh(NC, NONCE')} KSL''') .
+  eq deleteKSL(KSL, KSL') = KSL [owise] .
+
+  eq modifyMsg(extensions(supported-versions(PVL) EXT) MC, {supported-versions, add(v[PVL'])}) = extensions(supported-versions(PVL PVL') EXT) MC .
+  eq modifyMsg(extensions(supported-versions(PVL PVL' PVL'') EXT) MC, {supported-versions, delete(v[PVL'])}) = extensions(supported-versions(PVL PVL'') EXT) MC .
+  eq modifyMsg(extensions(supported-versions(PVL PVL' PVL'') EXT) MC, {supported-versions, replace(v[PVL'], v[PVL'''])}) = extensions(supported-versions(PVL PVL''' PVL'') EXT) MC .
+
+  eq modifyMsg(extensions(signature-algorithms(SCL) EXT) MC, {signature-algorithms, add(v[SCL'])}) = extensions(signature-algorithms(SCL SCL') EXT) MC .
+  eq modifyMsg(extensions(signature-algorithms(SCL SCL' SCL'') EXT) MC, {signature-algorithms, delete(v[SCL'])}) = extensions(signature-algorithms(SCL SCL'') EXT) MC .
+  eq modifyMsg(extensions(signature-algorithms(SCL SCL' SCL'') EXT) MC, {signature-algorithms, replace(v[SCL'], v[SCL'''])}) = extensions(signature-algorithms(SCL SCL''' SCL'') EXT) MC .
+  eq modifyMsg(certificate-verify-algorithm(SC) MC, {certificate-verify-algorithm, replace(v[SC], v[SC'])}) = certificate-verify-algorithm(SC') MC .
+
+
+  eq modifyMsg(extensions(supported-groups(NGL) EXT) MC, {supported-groups, add(v[NGL'])}) = extensions(supported-groups(NGL NGL') EXT) MC .
+  eq modifyMsg(extensions(supported-groups(NGL NGL' NGL'') EXT) MC, {supported-groups, delete(v[NGL'])}) = extensions(supported-groups(NGL NGL'') EXT) MC .
+  eq modifyMsg(extensions(supported-groups(NGL NGL' NGL'') EXT) MC, {supported-groups, replace(v[NGL'], v[NGL'''])}) = extensions(supported-groups(NGL NGL''' NGL'') EXT) MC .
+
+  eq modifyMsg(extensions(pre-shared-key(N) EXT) MC, {selected-identifier, replace(n[N], n[N'])}) = extensions(pre-shared-key(N') EXT) MC .
+
+  eq modifyMsg(extensions(psk-key-exchange-mode(PEML) EXT) MC, {psk-key-exchange-modes, add(v[PEML'])}) = extensions(psk-key-exchange-mode(PEML PEML') EXT) MC .
+  eq modifyMsg(extensions(psk-key-exchange-mode(PEM) EXT) MC, {psk-key-exchange-modes, replace(v[PEM], v[PEM'])}) = extensions(psk-key-exchange-mode(PEM') EXT) MC .
+  eq modifyMsg(extensions(psk-key-exchange-mode(PEML) EXT) MC, {psk-key-exchange-modes, replace(v[PEML], v[PEML'])}) = extensions(psk-key-exchange-mode(PEML') EXT) MC .
+  eq modifyMsg(extensions(psk-key-exchange-mode(PEML PEML' PEML'') EXT) MC, {psk-key-exchange-modes, delete(v[PEML'])}) = extensions(psk-key-exchange-mode(PEML PEML'') EXT) MC .
+  eq modifyMsg(extensions(psk-key-exchange-mode(PEML PEML' PEML'') EXT) MC, {psk-key-exchange-modes, replace(v[PEML'], v[PEML'''])}) = extensions(psk-key-exchange-mode(PEML PEML''' PEML'') EXT) MC .
+
+  eq modifyMsg(extensions(EXT) MC, {extensions, add(v[key-shares, KSL])}) = extensions(EXT key-shares(KSL) key-shares-len(valid)) MC .
+  eq modifyMsg(extensions(EXT) MC, {extensions, add(v[key-shares-groups, NGL])}) = extensions(EXT key-shares(NGL) key-shares-len(valid)) MC .
+  eq modifyMsg(extensions(EXT) MC, {extensions, add(v[supported-versions, PVL])}) = extensions(EXT supported-versions(PVL) supported-versions-len(valid)) MC .
+  eq modifyMsg(extensions(EXT) MC, {extensions, add(v[signature-algorithms, SCL])}) = extensions(EXT signature-algorithms(SCL) signature-algorithms-len(valid)) MC .
+  eq modifyMsg(extensions(EXT) MC, {extensions, add(v[supported-groups, NGL])}) = extensions(EXT supported-groups(NGL) supported-groups-len(valid)) MC .
+  eq modifyMsg(extensions(EXT) MC, {extensions, add(v[psk-key-exchange-modes, PEML])}) = extensions(EXT psk-key-exchange-mode(PEML) psk-key-exchange-mode-len(valid)) MC .
+  eq modifyMsg(extensions(EXT) MC, {extensions, add(v[early-data])}) = extensions(EXT early-data early-data-len(valid)) MC .
+  eq modifyMsg(extensions(EXT) MC, {extensions, add(v[post-handshake])}) = extensions(EXT post-handshake post-handshake-len(valid)) MC .
+  eq modifyMsg(extensions(EXT) MC, {extensions, add(v[pre-shared-key, TICKETL, BINDERL])}) = extensions(EXT pre-shared-key(TICKETL, BINDERL) pre-shared-key-len(valid)) MC .
+  eq modifyMsg(extensions(EXT) MC, {extensions, add(v[selected-identifier, N])}) = extensions(EXT pre-shared-key(N) pre-shared-key-len(valid)) MC .
+
+  eq modifyMsg(extensions(key-shares(KSL) key-shares-len(SZ) EXT) MC, {extensions, delete(v[key-shares])}) = extensions(EXT) MC .
+  eq modifyMsg(extensions(key-shares(NG) key-shares-len(SZ) EXT) MC, {extensions, delete(v[key-shares-groups])}) = extensions(EXT) MC .
+  eq modifyMsg(extensions(supported-versions(PVL) supported-versions-len(SZ) EXT) MC, {extensions, delete(v[supported-versions])}) = extensions(EXT) MC .
+  eq modifyMsg(extensions(signature-algorithms(SCL) signature-algorithms-len(SZ) EXT) MC, {extensions, delete(v[signature-algorithms])}) = extensions(EXT) MC .
+  eq modifyMsg(extensions(supported-groups(NGL) supported-groups-len(SZ) EXT) MC, {extensions, delete(v[supported-groups])}) = extensions(EXT) MC .
+  eq modifyMsg(extensions(pre-shared-key(TICKETL, BINDERL) pre-shared-key-len(SZ) EXT) MC, {extensions, delete(v[pre-shared-key])}) = extensions(EXT) MC .
+  eq modifyMsg(extensions(pre-shared-key(N) pre-shared-key-len(SZ) EXT) MC, {extensions, delete(v[selected-identifier])}) = extensions(EXT) MC .
+  eq modifyMsg(extensions(psk-key-exchange-mode(PEML) psk-key-exchange-mode-len(SZ) EXT) MC, {extensions, delete(v[psk-key-exchange-modes])}) = extensions(EXT) MC .
+  eq modifyMsg(extensions(early-data EXT) MC, {extensions, delete(v[early-data])}) = extensions(EXT) MC .
+
+  eq modifyMsg(handshakeLen(SZ) MC, {handshake-len, replace(v[SZ], v[SZ'])}) = handshakeLen(SZ') MC .
+  eq modifyMsg(sessionIdLen(SZ) MC, {sessionId-len, replace(v[SZ], v[SZ'])}) = sessionIdLen(SZ') MC .
+  eq modifyMsg(cipherSuitesLen(SZ) MC, {cipherSuite-len, replace(v[SZ], v[SZ'])}) = cipherSuitesLen(SZ') MC .
+  eq modifyMsg(compressionsLen(SZ) MC, {compression-len, replace(v[SZ], v[SZ'])}) = compressionsLen(SZ') MC .
+  eq modifyMsg(certificatesLen(SZ) MC, {certificate-len, replace(v[SZ], v[SZ'])}) = certificatesLen(SZ') MC .
+  eq modifyMsg(certificateTypesLen(SZ) MC, {certificate-type-len, replace(v[SZ], v[SZ'])}) = certificateTypesLen(SZ') MC .
+  eq modifyMsg(certificateAlgosLen(SZ) MC, {certificate-algo-len, replace(v[SZ], v[SZ'])}) = certificateAlgosLen(SZ') MC .
+  eq modifyMsg(certificateAuthsLen(SZ) MC, {certificate-auth-len, replace(v[SZ], v[SZ'])}) = certificateAuthsLen(SZ') MC .
+  eq modifyMsg(certificate-request-context-len(SZ) MC, {certificate-request-context-len, replace(v[SZ], v[SZ'])}) = certificate-request-context-len(SZ') MC .
+  eq modifyMsg(signature-len(SZ) MC, {signature-len, replace(v[SZ], v[SZ'])}) = signature-len(SZ') MC .
+  eq modifyMsg(extensionsLen(SZ) MC, {extension-len, replace(v[SZ], v[SZ'])}) = extensionsLen(SZ') MC .
+  eq modifyMsg(extensions(supported-versions-len(SZ) EXT) MC, {supported-versions-len, replace(v[SZ], v[SZ'])}) = extensions(supported-versions-len(SZ') EXT) MC .
+  eq modifyMsg(extensions(supported-groups-len(SZ) EXT) MC, {supported-groups-len, replace(v[SZ], v[SZ'])}) = extensions(supported-groups-len(SZ') EXT) MC .
+  eq modifyMsg(extensions(signature-algorithms-len(SZ) EXT) MC, {signature-algorithms-len, replace(v[SZ], v[SZ'])}) = extensions(signature-algorithms-len(SZ') EXT) MC .
+  eq modifyMsg(extensions(psk-key-exchange-mode-len(SZ) EXT) MC, {psk-key-exchange-mode-len, replace(v[SZ], v[SZ'])}) = extensions(psk-key-exchange-mode-len(SZ') EXT) MC .
+  eq modifyMsg(extensions(key-shares-len(SZ) EXT) MC, {key-shares-len, replace(v[SZ], v[SZ'])}) = extensions(key-shares-len(SZ') EXT) MC .
+
+  op modifyObj : Configuration MessageModification -> Configuration .
+  eq modifyObj(CONF {OBJ, buildClientHelloV2(MC, EMC, TI)}, MM) = modifyLink(CONF, MM, getTId(OBJ)) {OBJ, buildMClientHelloV2(modifyPlainForProtected(MC, MM), modifyMsg(EMC, MM), TI)} .
+  eq modifyObj(CONF {OBJ, buildServerHelloV2(MC, EMC, TI)}, MM) = modifyLink(CONF, MM, getTId(OBJ)) {OBJ, buildMServerHelloV2(modifyPlainForProtected(MC, MM), modifyMsg(EMC, MM), TI)} .
+  eq modifyObj(CONF {OBJ, buildCertificateRequestV2(MC, EMC, TI)}, MM) = modifyLink(CONF, MM, getTId(OBJ)) {OBJ, buildMCertificateRequestV2(modifyPlainForProtected(MC, MM), modifyMsg(EMC, MM), TI)} .
+  eq modifyObj(CONF {OBJ, buildServerCertificateV2(MC, EMC, TI)}, MM) = modifyLink(CONF, MM, getTId(OBJ)) {OBJ, buildMServerCertificateV2(modifyPlainForProtected(MC, MM), modifyMsg(EMC, MM), TI)} .
+  eq modifyObj(CONF {OBJ, buildServerKeyExchangeV2(MC, EMC, TI)}, MM) = modifyLink(CONF, MM, getTId(OBJ)) {OBJ, buildMServerKeyExchangeV2(modifyPlainForProtected(MC, MM), modifyMsg(EMC, MM), TI)} .
+  eq modifyObj(CONF {OBJ, buildServerHelloDoneV2(MC, EMC, TI)}, MM) = modifyLink(CONF, MM, getTId(OBJ)) {OBJ, buildMServerHelloDoneV2(modifyPlainForProtected(MC, MM), modifyMsg(EMC, MM), TI)} .
+  eq modifyObj(CONF {OBJ, buildClientCertificateV2(MC, EMC, TI)}, MM) = modifyLink(CONF, MM, getTId(OBJ)) {OBJ, buildMClientCertificateV2(modifyPlainForProtected(MC, MM), modifyMsg(EMC, MM), TI)} .
+  eq modifyObj(CONF {OBJ, buildClientKeyExchangeV2(MC, EMC, TI)}, MM) = modifyLink(CONF, MM, getTId(OBJ)) {OBJ, buildMClientKeyExchangeV2(modifyPlainForProtected(MC, MM), modifyMsg(EMC, MM), TI)} .
+  eq modifyObj(CONF {OBJ, buildClientCertificateVerifyV2(MC, EMC, TI)}, MM) = modifyLink(CONF, MM, getTId(OBJ)) {OBJ, buildMClientCertificateVerifyV2(modifyPlainForProtected(MC, MM), modifyMsg(EMC, MM), TI)} .
+  eq modifyObj(CONF {OBJ, buildServerFinishedV2(MC, EMC, TI)}, MM) = modifyLink(CONF, MM, getTId(OBJ)) {OBJ, buildMServerFinishedV2(modifyPlainForProtected(MC, MM), modifyMsg(EMC, MM), TI)} .
+  eq modifyObj(CONF {OBJ, buildClientFinishedV2(MC, EMC, TI)}, MM) = modifyLink(CONF, MM, getTId(OBJ)) {OBJ, buildMClientFinishedV2(modifyPlainForProtected(MC, MM), modifyMsg(EMC, MM), TI)} .
+
+  eq modifyObj(CONF {OBJ, buildClientHelloV3(MC, TI)}, MM) = modifyLink(CONF, MM, getTId(OBJ)) {OBJ, buildMClientHelloV3(modifyMsg(MC, MM), TI)} .
+  eq modifyObj(CONF {OBJ, buildHelloRetryRequestV3(MC, TI)}, MM) = modifyLink(CONF, MM, getTId(OBJ)) {OBJ, buildMHelloRetryRequestV3(modifyMsg(MC, MM), TI)} .
+  eq modifyObj(CONF {OBJ, buildServerHelloV3(MC, TI)}, MM) = modifyLink(CONF, MM, getTId(OBJ)) {OBJ, buildMServerHelloV3(modifyMsg(MC, MM), TI)} .
+  eq modifyObj(CONF {OBJ, buildEncryptedExtensionV3(MC, MC', TI)}, MM) = modifyLink(CONF, MM, getTId(OBJ)) {OBJ, buildMEncryptedExtensionV3(modifyPlainForProtected(MC, MM), modifyMsg(MC', MM), TI)} .
+  eq modifyObj(CONF {OBJ, buildCertificateRequestV3(MC, MC', TI)}, MM) = modifyLink(CONF, MM, getTId(OBJ)) {OBJ, buildMCertificateRequestV3(modifyPlainForProtected(MC, MM), modifyMsg(MC', MM), TI)} .
+  eq modifyObj(CONF {OBJ, buildServerCertificateV3(MC, MC', TI)}, MM) = modifyLink(CONF, MM, getTId(OBJ)) {OBJ, buildMServerCertificateV3(modifyPlainForProtected(MC, MM), modifyMsg(MC', MM), TI)} .
+  eq modifyObj(CONF {OBJ, buildServerCertificateVerifyV3(MC, MC', TI)}, MM) = modifyLink(CONF, MM, getTId(OBJ)) {OBJ, buildMServerCertificateVerifyV3(modifyPlainForProtected(MC, MM), modifyMsg(MC', MM), TI)} .
+  eq modifyObj(CONF {OBJ, buildServerFinishedV3(MC, MC', TI)}, MM) = modifyLink(CONF, MM, getTId(OBJ)) {OBJ, buildMServerFinishedV3(modifyPlainForProtected(MC, MM), modifyMsg(MC', MM), TI)} .
+  eq modifyObj(CONF {OBJ, buildClientCertificateV3(MC, MC', TI)}, MM) = modifyLink(CONF, MM, getTId(OBJ)) {OBJ, buildMClientCertificateV3(modifyPlainForProtected(MC, MM), modifyMsg(MC', MM), TI)} .
+  eq modifyObj(CONF {OBJ, buildClientCertificateVerifyV3(MC, MC', TI)}, MM) = modifyLink(CONF, MM, getTId(OBJ)) {OBJ, buildMClientCertificateVerifyV3(modifyPlainForProtected(MC, MM), modifyMsg(MC', MM), TI)} .
+  eq modifyObj(CONF {OBJ, buildClientFinishedV3(MC, MC', TI)}, MM) = modifyLink(CONF, MM, getTId(OBJ)) {OBJ, buildMClientFinishedV3(modifyPlainForProtected(MC, MM), modifyMsg(MC', MM), TI)} .
+
+  op modifyLink : Configuration MessageModification TId -> Configuration .
+  eq modifyLink(< TI to TI' : Link | msgQueue : MSGS :: {MC} > CONF, MM, TI) 
+   = < TI to TI' : Link | msgQueue : MSGS :: {modifyMsg(MC, MM)} > CONF .
+
+  op modifyPlainForProtected : MsgContent MessageModification -> MsgContent .
+  eq modifyPlainForProtected(MC, {content-type, OP}) = MC .
+  eq modifyPlainForProtected(MC, MM) = modifyMsg(MC, MM) [owise] .
+
+  op changeOrder : ConfWithAction TId HandshakeType HandshakeType -> ConfWithAction .
+ --- ceq changeOrder({< NI : Node | outputBuffer : MS :: (MC from SI to TI) :: MS' :: (MC' from SI to TI) :: MS'' > CONF | OIDL : ACTL}, NI . CI, HTY1, HTY2)
+ ---   = {< NI : Node | outputBuffer : MS :: (MC' from SI to TI) :: MS' :: (MC from SI to TI) :: MS'' > CONF | OIDL : ACTL} 
+ ---  if getHandshakeType(MC) == HTY1 /\ getHandshakeType(MC') == HTY2 .
+
+  op getHandshakeType : MsgContent -> HandshakeType .
+  eq getHandshakeType(handshakeType(HTY1) MC) = HTY1 .
+  eq getHandshakeType(MC encrypt(KEY, handshakeType(HTY1) MC')) = HTY1 .
+
+  op getTId : Object -> TId .
+  eq getTId(< TI : TLS | >) = TI .
+
+endom
+
+fmod MESSAGE-MODIFICATION-NORMALIZE is
+  protecting LIST{MessageModification} .
+  protecting SET{TLSMsgValue} .
+  protecting TLS-MESSAGE-ALL-VALUE .
+
+  var TCI : TLSContentId .
+  var TCEI : TLSContentExtId .
+  var TCLI : TLSContentLenId .
+  vars TCV TCV' : TLSMsgConcValue .
+  var TMV : TLSMsgValue .
+  var TMVS : Set{TLSMsgValue} .
+  var OP : ChangeOperation .
+  var N : Nat .
+
+  op normalize : MessageModification -> List{MessageModification} .
+  op normalize : MessageModification Set{TLSMsgValue} -> List{MessageModification} .
+
+  eq normalize({TCI, add(*(s N))}) 
+   = normalize({TCI, add(*(N))}, genValues(TCI, N, init(TCI))) .
+  eq normalize({TCI, add(*(N))}, (TCV, TMVS))
+   = {TCI, add(TCV)} normalize({TCI, add(*(N))}, TMVS) .
+
+  eq normalize({extensions, add(v[TCEI, *(s N)])}) 
+   = normalize({extensions, add(v[TCEI, *(N)])}, genValues(TCEI, N, init(TCEI))) .
+  eq normalize({extensions, add(v[key-shares, *(N)])}, (v[KSL], TMVS))
+   = {extensions, add(v[key-shares, KSL])} normalize({extensions, add(v[key-shares, *(N)])}, TMVS) .
+  eq normalize({extensions, add(v[key-shares-groups, *(N)])}, (v[NGL], TMVS))
+   = {extensions, add(v[key-shares-groups, NGL])} normalize({extensions, add(v[key-shares-groups, *(N)])}, TMVS) .
+  eq normalize({extensions, add(v[supported-versions, *(N)])}, (v[PVL], TMVS))
+   = {extensions, add(v[supported-versions, PVL])} normalize({extensions, add(v[supported-versions, *(N)])}, TMVS) .
+  eq normalize({extensions, add(v[signature-algorithms, *(N)])}, (v[SHL], TMVS))
+   = {extensions, add(v[signature-algorithms, SHL])} normalize({extensions, add(v[signature-algorithms, *(N)])}, TMVS) .
+  eq normalize({extensions, add(v[supported-groups, *(N)])}, (v[NGL], TMVS))
+   = {extensions, add(v[supported-groups, NGL])} normalize({extensions, add(v[supported-groups, *(N)])}, TMVS) .
+  eq normalize({extensions, add(v[psk-key-exchange-modes, *(N)])}, (v[PML], TMVS))
+   = {extensions, add(v[psk-key-exchange-modes, PML])} normalize({extensions, add(v[psk-key-exchange-modes, *(N)])}, TMVS) .
+
+  eq normalize({TCI, delete(*(s N))}) 
+   = normalize({TCI, delete(*(N))}, genValues(TCI, N, init(TCI))) .
+  eq normalize({TCI, delete(*(N))}, (TCV, TMVS))
+   = {TCI, delete(TCV)} normalize({TCI, delete(*(N))}, TMVS) .
+
+  eq normalize({TCI, replace(TMV, *(s N))}) 
+   = normalize({TCI, replace(TMV, *(N))}, genValues(TCI, N, init(TCI))) .
+  eq normalize({TCI, replace(TMV, *(N))}, (TCV, TMVS))
+   = (if TMV =/= TCV then normalize({TCI, replace(TMV, TCV)}) else nil fi) normalize({TCI, replace(TMV, *(N))}, TMVS) .
+
+  eq normalize({TCI, replace(*(s N), TCV)})
+   = normalize({TCI, replace(*(s N), TCV)}, genValues(TCI, N, init(TCI))) .
+  eq normalize({TCI, replace(*(N),   TCV)}, (TCV', TMVS))
+   = (if TCV =/= TCV' then {TCI, replace(TCV', TCV)} else nil fi) normalize({TCI, replace(*(N), TCV)}, TMVS) .
+
+  eq normalize({TCI, OP}, empty) = nil .
+  eq normalize({TCI, OP}) = {TCI, OP} [owise] .
+
+  op init : TLSContentId -> Set{TLSMsgValue} .
+  eq init(content-type) = initCT(allContentTypes) .
+  eq init(handshake-type) = initHT(allHandshakeTypes) .
+  eq init(version) = initPV(allVersions) .
+  eq init(cipher-suites) = initCS(allCipherSuites) .
+  eq init(compression-methods) = initCM(allCompressionMethods) .
+  eq init(certificate-list) = initCR(allCertificates) .
+  eq init(certificate-type) = initCRT(allCertificateTypes) .
+  eq init(supported-versions) = initPV(allVersions) .
+  eq init(key-shares) = initKS(allKeyShareEntries) .
+  eq init(key-shares-groups) = initNG(allNamedGroups) .
+  eq init(supported-groups) = initNG(allNamedGroups) .
+  eq init(signature-algorithms) = initSH(allSignatureAlgorithms) .
+  eq init(certificate-algo) = initSH(allSignatureAlgorithms) .
+  eq init(certificate-verify-algorithm) = initSH(allSignatureAlgorithms) .
+  eq init(psk-key-exchange-modes) = initPM(allPSKExchangeModes) .
+  eq init(TCLI) = initSZ(allMsgSizes) .
+
+  op initCT : Set{ContentType} -> Set{TLSMsgValue} .
+  eq initCT((CT, CTS)) = v[CT], initCT(CTS) .
+  eq initCT(empty) = empty .
+
+  op initHT : Set{HandshakeType} -> Set{TLSMsgValue} .
+  eq initHT((HT, HTS)) = v[HT], initHT(HTS) .
+  eq initHT(empty) = empty .
+
+  op initPV : Set{ProtocolVersion} -> Set{TLSMsgValue} .
+  eq initPV((PV, PVS)) = v[PV], initPV(PVS) .
+  eq initPV(empty) = empty .
+
+  op initCS : Set{CipherSuite} -> Set{TLSMsgValue} .
+  eq initCS((CS, CSS)) = v[CS], initCS(CSS) .
+  eq initCS(empty) = empty .
+
+  op initCM : Set{CompressionMethod} -> Set{TLSMsgValue} .
+  eq initCM((CM, CMS)) = v[CM], initCM(CMS) .
+  eq initCM(empty) = empty .
+
+  op initCR : Set{Certificate} -> Set{TLSMsgValue} .
+  eq initCR((CERT, CERTS)) = v[CERT], initCR(CERTS) .
+  eq initCR(empty) = empty .
+
+  op initCRT : Set{CertificateType} -> Set{TLSMsgValue} .
+  eq initCRT((CTY, CTYS)) = v[CTY], initCRT(CTYS) .
+  eq initCRT(empty) = empty .
+
+  op initKS : Set{KeyShareEntry} -> Set{TLSMsgValue} .
+  eq initKS((KS, KSS)) = v[KS], initKS(KSS) .
+  eq initKS(empty) = empty .
+
+  op initNG : Set{NamedGroup} -> Set{TLSMsgValue} .
+  eq initNG((NG, NGS)) = v[NG], initNG(NGS) .
+  eq initNG(empty) = empty .
+
+  op initSH : Set{SignatureAlgorithm} -> Set{TLSMsgValue} .
+  eq initSH((SH, SHS)) = v[SH], initSH(SHS) .
+  eq initSH(empty) = empty .
+
+  op initPM : Set{PreSharedKeyExchangeMode} -> Set{TLSMsgValue} .
+  eq initPM((PM, PMS)) = v[PM], initPM(PMS) .
+  eq initPM(empty) = empty .
+
+  op initSZ : Set{MsgSize} -> Set{TLSMsgValue} .
+  eq initSZ((SZ, SZS)) = v[SZ], initSZ(SZS) .
+  eq initSZ(empty) = empty .
+
+  op genValues : TLSContentId Nat Set{TLSMsgValue} -> Set{TLSMsgValue} .
+  eq genValues(TCI, 0, TMVS)   = TMVS .
+
+  --- Content Types ---
+  eq genValues(content-type, s N, TMVS) = genValues(content-type, N, addCT(TMVS, allContentTypes)) .
+
+  var CT : ContentType .
+  var CTL : List{ContentType} .
+  var CTS : Set{ContentType} .
+
+  op addCT : Set{TLSMsgValue} Set{ContentType} -> Set{TLSMsgValue} .
+  eq addCT((v[CTL], TMVS), CTS) = addCT2(v[CTL], CTS), addCT(TMVS, CTS) .
+  eq addCT(empty, CTS) = empty .
+
+  op addCT2 : TLSMsgValue Set{ContentType} -> Set{TLSMsgValue} .
+  eq addCT2(v[CTL], (CT, CTS)) = v[CTL CT], addCT(v[CTL], CTS) .
+  eq addCT2(v[CTL], empty) = empty .
+
+  --- Handshake Types ---
+  eq genValues(handshake-type, s N, TMVS) = genValues(handshake-type, N, addHT(TMVS, allHandshakeTypes)) .
+
+  var HT : HandshakeType .
+  var HTL : List{HandshakeType} .
+  var HTS : Set{HandshakeType} .
+
+  op addHT : Set{TLSMsgValue} Set{HandshakeType} -> Set{TLSMsgValue} .
+  eq addHT((v[HTL], TMVS), HTS) = addHT2(v[HTL], HTS), addHT(TMVS, HTS) .
+  eq addHT(empty, HTS) = empty .
+
+  op addHT2 : TLSMsgValue Set{HandshakeType} -> Set{TLSMsgValue} .
+  eq addHT2(v[HTL], (HT, HTS)) = v[HTL HT], addHT(v[HTL], HTS) .
+  eq addHT2(v[HTL], empty) = empty .
+
+  --- Protocol Version ---
+  eq genValues(version, s N, TMVS) = genValues(version, N, addPV(TMVS, allVersions)) .
+
+  var PV : ProtocolVersion .
+  var PVL : List{ProtocolVersion} .
+  var PVS : Set{ProtocolVersion} .
+
+  op addPV : Set{TLSMsgValue} Set{ProtocolVersion} -> Set{TLSMsgValue} .
+  eq addPV((v[PVL], TMVS), PVS) = addPV2(v[PVL], PVS), addPV(TMVS, PVS) .
+  eq addPV(empty, PVS) = empty .
+
+  op addPV2 : TLSMsgValue Set{ProtocolVersion} -> Set{TLSMsgValue} .
+  eq addPV2(v[PVL], (PV, PVS)) = v[PVL PV], addPV(v[PVL], PVS) .
+  eq addPV2(v[PVL], empty) = empty .
+
+  --- Cipher Suites ---
+  eq genValues(cipher-suites, s N, TMVS) = genValues(cipher-suites, N, addCS(TMVS, allCipherSuites)) .
+  
+  var CS : CipherSuite .
+  var CSL : List{CipherSuite} .
+  var CSS : Set{CipherSuite} .
+
+  op addCS : Set{TLSMsgValue} Set{CipherSuite} -> Set{TLSMsgValue} .
+  eq addCS((v[CSL], TMVS), CSS) = addCS2(v[CSL], CSS), addCS(TMVS, CSS) .
+  eq addCS(empty, CSS) = empty .
+
+  op addCS2 : TLSMsgValue Set{CipherSuite} -> Set{TLSMsgValue} .
+  eq addCS2(v[CSL], (CS, CSS)) = v[CSL CS], addCS(v[CSL], CSS) .
+  eq addCS2(v[CSL], empty) = empty .
+
+  --- Compression Methods ---
+  eq genValues(compression-methods, s N, TMVS) = genValues(compression-methods, N, addCM(TMVS, allCompressionMethods)) .
+  
+  var CM : CompressionMethod .
+  var CML : List{CompressionMethod} .
+  var CMS : Set{CompressionMethod} .
+
+  op addCM : Set{TLSMsgValue} Set{CompressionMethod} -> Set{TLSMsgValue} .
+  eq addCM((v[CML], TMVS), CMS) = addCM2(v[CML], CMS), addCM(TMVS, CMS) .
+  eq addCM(empty, CMS) = empty .
+
+  op addCM2 : TLSMsgValue Set{CompressionMethod} -> Set{TLSMsgValue} .
+  eq addCM2(v[CML], (CM, CMS)) = v[CML CM], addCM(v[CML], CMS) .
+  eq addCM2(v[CML], empty) = empty .
+
+  --- Certificate ---
+  eq genValues(certificate-list, s N, TMVS) = genValues(certificate-list, N, addCR(TMVS, allCertificates)) .
+
+  var CERT : Certificate .
+  var CERTL : List{Certificate} .
+  var CERTS : Set{Certificate} .
+
+  op addCR : Set{TLSMsgValue} Set{Certificate} -> Set{TLSMsgValue} .
+  eq addCR((v[CERTL], TMVS), CERTS) = addCR2(v[CERTL], CERTS), addCR(TMVS, CERTS) .
+  eq addCR(empty, CERTS) = empty .
+
+  op addCR2 : TLSMsgValue Set{Certificate} -> Set{TLSMsgValue} .
+  eq addCR2(v[CERTL], (CERT, CERTS)) = v[CERTL CERT], addCR(v[CERTL], CERTS) .
+  eq addCR2(v[CERTL], empty) = empty .
+
+  --- Certificate Type ---
+  eq genValues(certificate-type, s N, TMVS) = genValues(certificate-type, N, addCRT(TMVS, allCertificateTypes)) .
+
+  var CTY : CertificateType .
+  var CTYL : List{CertificateType} .
+  var CTYS : Set{CertificateType} .
+
+  op addCRT : Set{TLSMsgValue} Set{CertificateType} -> Set{TLSMsgValue} .
+  eq addCRT((v[CTYL], TMVS), CTYS) = addCRT2(v[CTYL], CTYS), addCRT(TMVS, CTYS) .
+  eq addCRT(empty, CTYS) = empty .
+
+  op addCRT2 : TLSMsgValue Set{CertificateType} -> Set{TLSMsgValue} .
+  eq addCRT2(v[CTYL], (CTY, CTYS)) = v[CTYL CTY], addCRT(v[CTYL], CTYS) .
+  eq addCRT2(v[CTYL], empty) = empty .
+
+  --- Key Share Entries ---
+  eq genValues(key-shares, s N, TMVS) = genValues(key-shares, N, addKS(TMVS, allKeyShareEntries)) .
+
+  var KS : KeyShareEntry .
+  var KSL : List{KeyShareEntry} .
+  var KSS : Set{KeyShareEntry} .
+
+  op addKS : Set{TLSMsgValue} Set{KeyShareEntry} -> Set{TLSMsgValue} .
+  eq addKS((v[KSL], TMVS), KSS) = addKS2(v[KSL], KSS), addKS(TMVS, KSS) .
+  eq addKS(empty, KSS) = empty .
+
+  op addKS2 : TLSMsgValue Set{KeyShareEntry} -> Set{TLSMsgValue} .
+  eq addKS2(v[KSL], (KS, KSS)) = v[KSL KS], addKS(v[KSL], KSS) .
+  eq addKS2(v[KSL], empty) = empty .
+
+  --- Named Group ---
+  eq genValues(supported-groups, s N, TMVS) = genValues(supported-groups, N, addNG(TMVS, allNamedGroups)) .
+  eq genValues(key-shares-groups, s N, TMVS) = genValues(key-shares-groups, N, addNG(TMVS, allNamedGroups)) .
+
+  var NG : NamedGroup .
+  var NGL : List{NamedGroup} .
+  var NGS : Set{NamedGroup} .
+
+  op addNG : Set{TLSMsgValue} Set{NamedGroup} -> Set{TLSMsgValue} .
+  eq addNG((v[NGL], TMVS), NGS) = addNG2(v[NGL], NGS), addNG(TMVS, NGS) .
+  eq addNG(empty, NGS) = empty .
+
+  op addNG2 : TLSMsgValue Set{NamedGroup} -> Set{TLSMsgValue} .
+  eq addNG2(v[NGL], (NG, NGS)) = v[NGL NG], addNG(v[NGL], NGS) .
+  eq addNG2(v[NGL], empty) = empty .
+
+  --- Signature And Hash Algorithms ---
+  --- Certificate Verify Algorithm ---
+  eq genValues(signature-algorithms, s N, TMVS) = genValues(signature-algorithms, N, addSH(TMVS, allSignatureAlgorithms)) .
+  eq genValues(certificate-algo, s N, TMVS) = genValues(signature-algorithms, N, addSH(TMVS, allSignatureAlgorithms)) .
+  eq genValues(certificate-verify-algorithm, s N, TMVS) = genValues(certificate-verify-algorithm, N, addSH(TMVS, allSignatureAlgorithms)) .
+
+  var SH : SignatureAlgorithm .
+  var SHL : List{SignatureAlgorithm} .
+  var SHS : Set{SignatureAlgorithm} .
+
+  op addSH : Set{TLSMsgValue} Set{SignatureAlgorithm} -> Set{TLSMsgValue} .
+  eq addSH((v[SHL], TMVS), SHS) = addSH2(v[SHL], SHS), addSH(TMVS, SHS) .
+  eq addSH(empty, SHS) = empty .
+
+  op addSH2 : TLSMsgValue Set{SignatureAlgorithm} -> Set{TLSMsgValue} .
+  eq addSH2(v[SHL], (SH, SHS)) = v[SHL SH], addSH(v[SHL], SHS) .
+  eq addSH2(v[SHL], empty) = empty .
+
+  --- PSK Exchange Modes ---
+  eq genValues(psk-key-exchange-modes, s N, TMVS) = genValues(psk-key-exchange-modes, N, addPM(TMVS, allPSKExchangeModes)) .
+
+  var PM : PreSharedKeyExchangeMode .
+  var PML : List{PreSharedKeyExchangeMode} .
+  var PMS : Set{PreSharedKeyExchangeMode} .
+
+  op addPM : Set{TLSMsgValue} Set{PreSharedKeyExchangeMode} -> Set{TLSMsgValue} .
+  eq addPM((v[PML], TMVS), PMS) = addPM2(v[PML], PMS), addPM(TMVS, PMS) .
+  eq addPM(empty, PMS) = empty .
+
+  op addPM2 : TLSMsgValue Set{PreSharedKeyExchangeMode} -> Set{TLSMsgValue} .
+  eq addPM2(v[PML], (PM, PMS)) = v[PML PM], addPM(v[PML], PMS) .
+  eq addPM2(v[PML], empty) = empty .
+
+  --- Message Size ---
+  eq genValues(TCLI, s N, TMVS) = genValues(TCLI, N, addSZ(TMVS, allMsgSizes)) .
+
+  var SZ : MsgSize .
+  var SZL : List{MsgSize} .
+  var SZS : Set{MsgSize} .
+
+  op addSZ : Set{TLSMsgValue} Set{MsgSize} -> Set{TLSMsgValue} .
+  eq addSZ((v[SZL], TMVS), SZS) = addSZ2(v[SZL], SZS), addSZ(TMVS, SZS) .
+  eq addSZ(empty, SZS) = empty .
+
+  op addSZ2 : TLSMsgValue Set{MsgSize} -> Set{TLSMsgValue} .
+  eq addSZ2(v[SZL], (SZ, SZS)) = v[SZL SZ], addSZ(v[SZL], SZS) .
+  eq addSZ2(v[SZL], empty) = empty .
+endfm
+
+smod GEN-THREAT-MODULE is
+  protecting EXECUTE-SCENARIO-STRATEGY .
+  protecting MESSAGE-MODIFICATION-NORMALIZE .
+  protecting META-MODULE .
+  protecting META-LEVEL .
+  protecting LIST{MessageModification} .
+  protecting TLS-INITIAL-ID .
+  protecting TLS-OBJECT-ID .
+
+  vars SACT : ScenarioAction .
+  var ACT : ScenarioActionItem .
+  var RULES : RuleSet .
+  var RULE : Rule .
+  var HTR : HandshakeRuleLabel .
+  vars MID RID : Qid .
+  vars T1 T2 T3 : Term .
+  var AS : AttrSet .
+  vars COND COND' : Condition .
+  var MML : List{MessageModification} .
+  var MMS : Set{MessageModification} .
+  var MM : MessageModification .
+  var SDEF : StratDefSet .
+  vars HTY1 HTY2 : HandshakeType .
+  var TI : TId .
+  var TCONF : TLSConfiguration .
+
+  op genImportList : ScenarioAction -> ImportList .
+  eq genImportList(init(iversion(TI, TLS-12) TCONF) -> SACT)
+   = (protecting 'CONNECT-V2-API .)
+     (protecting 'ACCEPT-V2-API .)
+     (protecting 'TLS-NORMAL-BEHAVIOR-STRATEGY-V2 .) .
+
+  eq genImportList(init(iversion(TI, TLS-13) TCONF) -> SACT)
+   = (protecting 'CONNECT-V3-API .)
+     (protecting 'ACCEPT-V3-API .)
+     (protecting 'TLS-NORMAL-BEHAVIOR-STRATEGY-V3 .) .
+
+  op genThreatModule : ScenarioAction -> Module .
+ ceq genThreatModule(SACT) 
+   = smod 'THREAT-MODULE is
+	   protecting 'TLS-MESSAGE-ALL-VALUE .
+	   protecting 'RUN-SCENARIO .
+     genImportList(SACT)
+	 sorts none .
+	 none 
+	 none
+	 none
+	 none
+	 RULES
+	 none
+     SDEF
+	 endsm
+  if RULES := genThreatRules(SACT) 
+  /\ SDEF := genThreatStrat(SACT) .
+
+  op genThreatRules : ScenarioAction -> RuleSet .
+  eq genThreatRules(ACT -> SACT) = genThreatRule(ACT) genThreatRules(SACT) .
+  eq genThreatRules(none) = none [owise] .
+
+  op genThreatRule : ScenarioAction -> RuleSet .
+  op genThreatRule : Set{MessageModification} RuleSet -> RuleSet .
+  eq genThreatRule(changeContent(HTR, MMS)) = genThreatRule(MMS, buildRule(HTR)) .
+  eq genThreatRule(wrongProcess(HTR)) = modify3(processRule(HTR)) .
+  eq genThreatRule(reorder(TI, HTY1, HTY2)) = modify4(sendRule, TI, HTY1, HTY2) .
+  eq genThreatRule(SACT) = none [owise] .
+
+  eq genThreatRule((MM, MMS), RULES) 
+   = genThreatRule(MMS, modify(RULES, normalize(MM))) . 
+  eq genThreatRule(empty, RULES) = RULES . 
+
+  op buildRule : HandshakeRuleLabel -> Rule .
+  eq buildRule(client-hello-v2) = ruleTerm('BUILD-CLIENT-HELLO-V2, 'buildClientHelloV2) .
+  eq buildRule(server-hello-v2) = ruleTerm('BUILD-SERVER-HELLO-V2, 'buildServerHelloV2) .
+  eq buildRule(certificate-request-v2) = ruleTerm('BUILD-SERVER-CERTIFICATE-REQUEST-V2, 'buildCertificateRequestV2) .
+  eq buildRule(server-certificate-v2) = ruleTerm('BUILD-SERVER-CERTIFICATE-V2, 'buildServerCertificateV2) .
+  eq buildRule(server-key-exchange-v2) = ruleTerm('BUILD-SERVER-KEY-EXCHANGE-V2, 'buildServerKeyExchangeV2) .
+  eq buildRule(server-hello-done-v2) = ruleTerm('BUILD-SERVER-HELLO-DONE-V2, 'buildServerHelloDoneV2) .
+  eq buildRule(client-certificate-v2) = ruleTerm('BUILD-CLIENT-CERTIFICATE-V2, 'buildClientCertificateV2) .
+  eq buildRule(client-key-exchange-v2) = ruleTerm('BUILD-CLIENT-KEY-EXCHANGE-V2, 'buildClientKeyExchangeV2) .
+  eq buildRule(client-certificate-verify-v2) = ruleTerm('BUILD-CLIENT-CERTIFICATE-VERIFY-V2, 'buildClientCertificateVerifyV2) .
+  eq buildRule(server-finished-v2) = ruleTerm('BUILD-SERVER-FINISHED-V2, 'buildServerFinishedV2) .
+  eq buildRule(client-finished-v2) = ruleTerm('BUILD-CLIENT-FINISHED-V2, 'buildClientFinishedV2) .
+
+  eq buildRule(client-hello-v3) = ruleTerm('BUILD-CLIENT-HELLO-V3, 'buildClientHelloV3) .
+  eq buildRule(second-client-hello-v3) = ruleTerm('BUILD-SECOND-CLIENT-HELLO-V3, 'buildSecondClientHelloV3) .
+  eq buildRule(hello-retry-request-v3) = ruleTerm('BUILD-HELLO-RETRY-REQUEST-V3, 'buildHelloRetryRequestV3) .
+  eq buildRule(server-hello-v3) = ruleTerm('BUILD-SERVER-HELLO-V3, 'buildServerHelloV3) .
+  eq buildRule(encrypted-extension-v3) = ruleTerm('BUILD-SERVER-ENCRYPTED-EXTENSIONS-V3, 'buildEncryptedExtensionV3) .
+  eq buildRule(certificate-request-v3) = ruleTerm('BUILD-SERVER-CERTIFICATE-REQUEST-V3, 'buildCertificateRequestV3) .
+  eq buildRule(server-certificate-v3) = ruleTerm('BUILD-SERVER-CERTIFICATE-V3, 'buildServerCertificateV3) .
+  eq buildRule(server-certificate-verify-v3) = ruleTerm('BUILD-SERVER-CERTIFICATE-VERIFY-V3, 'buildServerCertificateVerifyV3) .
+  eq buildRule(server-finished-v3) = ruleTerm('BUILD-SERVER-FINISHED-V3, 'buildServerFinishedV3) .
+  eq buildRule(client-certificate-v3) = ruleTerm('BUILD-CLIENT-CERTIFICATE-V3, 'buildClientCertificateV3) .
+  eq buildRule(client-certificate-verify-v3) = ruleTerm('BUILD-CLIENT-CERTIFICATE-VERIFY-V3, 'buildClientCertificateVerifyV3) .
+  eq buildRule(client-finished-v3) = ruleTerm('BUILD-CLIENT-FINISHED-V3, 'buildClientFinishedV3) .
+  eq buildRule(second-client-certificate-v3) = ruleTerm('BUILD-CLIENT-CERTIFICATE-V3, 'buildClientCertificateV3) .
+  eq buildRule(second-client-certificate-verify-v3) = ruleTerm('BUILD-CLIENT-CERTIFICATE-VERIFY-V3, 'buildClientCertificateVerifyV3) .
+  eq buildRule(second-client-finished-v3) = ruleTerm('BUILD-CLIENT-FINISHED-V3, 'buildClientFinishedV3) .
+  eq buildRule(new-session-ticket-v3) = ruleTerm('BUILD-NEW-SESSION-TICKET-V3, 'buildNewSessionTicketV3) .
+
+  op processRule : HandshakeRuleLabel -> Rule .
+  eq processRule(client-hello-v2) = ruleTerm('PROCESS-CLIENT-HELLO-V2, 'processClientHelloV2) .
+  eq processRule(server-hello-v2) = ruleTerm('PROCESS-SERVER-HELLO-V2, 'processServerHelloV2) .
+  eq processRule(certificate-request-v2) = ruleTerm('PROCESS-SERVER-CERTIFICATE-REQUEST-V2, 'processCertificateRequestV2) .
+  eq processRule(server-certificate-v2) = ruleTerm('PROCESS-SERVER-CERTIFICATE-V2, 'processServerCertificateV2) .
+  eq processRule(server-key-exchange-v2) = ruleTerm('PROCESS-SERVER-KEY-EXCHANGE-V2, 'processServerKeyExchangeV2) .
+  eq processRule(server-hello-done-v2) = ruleTerm('PROCESS-SERVER-HELLO-DONE-V2, 'processServerHelloDoneV2) .
+  eq processRule(client-certificate-v2) = ruleTerm('PROCESS-CLIENT-CERTIFICATE-V2, 'processClientCertificateV2) .
+  eq processRule(client-key-exchange-v2) = ruleTerm('PROCESS-CLIENT-KEY-EXCHANGE-V2, 'processClientKeyExchangeV2) .
+  eq processRule(client-certificate-verify-v2) = ruleTerm('PROCESS-CLIENT-CERTIFICATE-VERIFY-V2, 'processCertificateVerifyV2) .
+  eq processRule(server-finished-v2) = ruleTerm('PROCESS-SERVER-FINISHED-V2, 'processServerFinishedV2) .
+  eq processRule(client-finished-v2) = ruleTerm('PROCESS-CLIENT-FINISHED-V2, 'processClientFinishedV2) .
+
+  eq processRule(client-hello-v3) = ruleTerm('PROCESS-CLIENT-HELLO-V3, 'processClientHelloV3) .
+  eq processRule(hello-retry-request-v3) = ruleTerm('PROCESS-HELLO-RETRY-REQUEST, 'processHelloRetryRequestV3) .
+  eq processRule(server-hello-v3) = ruleTerm('PROCESS-SERVER-HELLO-V3, 'processServerHelloV3) .
+  eq processRule(encrypted-extension-v3) = ruleTerm('PROCESS-SERVER-ENCRYPTED-EXTENSION-V3, 'processEncryptedExtensionV3) .
+  eq processRule(certificate-request-v3) = ruleTerm('PROCESS-SERVER-CERTIFICATE-REQUEST-V3, 'processCertificateRequestV3) .
+  eq processRule(server-certificate-v3) = ruleTerm('PROCESS-SERVER-CERTIFICATE-V3, 'processServerCertificateV3) .
+  eq processRule(server-certificate-verify-v3) = ruleTerm('PROCESS-SERVER-CERTIFICATE-VERIFY-V3, 'processServerCertificateVerifyV3) .
+  eq processRule(server-finished-v3) = ruleTerm('PROCESS-SERVER-FINISHED-V3, 'processServerFinishedV3) .
+  eq processRule(client-certificate-v3) = ruleTerm('PROCESS-CLIENT-CERTIFICATE-V3, 'processClientCertificateV3) .
+  eq processRule(client-certificate-verify-v3) = ruleTerm('PROCESS-CLIENT-CERTIFICATE-VERIFY-V3, 'processClientCertificateVerifyV3) .
+  eq processRule(client-finished-v3) = ruleTerm('PROCESS-CLIENT-FINISHED-V3, 'processClientFinishedV3) .
+
+  op sendRule : -> Rule .
+  eq sendRule = ruleTerm('NETWORK-BEHAVIOR, 'sendMsg) .
+
+  op genThreatStrat : ScenarioAction -> StratDefSet .
+  eq genThreatStrat(ACT -> SACT) = genThreatStrat(SACT) [owise] .
+
+  eq genThreatStrat(changeContent(client-hello-v2, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(client-hello-v2), upTerm(MMS)]]] := 'buildMClientHelloV2 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(server-hello-v2, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(server-hello-v2), upTerm(MMS)]]] := 'buildMServerHelloV2 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(certificate-request-v2, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(certificate-request-v2), upTerm(MMS)]]] := 'buildMCertificateRequestV2 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(server-certificate-v2, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(server-certificate-v2), upTerm(MMS)]]] := 'buildMServerCertificateV2 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(server-key-exchange-v2, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(server-key-exchange-v2), upTerm(MMS)]]] := 'buildMServerKeyExchangeV2 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(server-hello-done-v2, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(server-hello-done-v2), upTerm(MMS)]]] := 'buildMServerHelloDoneV2 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(client-certificate-v2, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(client-certificate-v2), upTerm(MMS)]]] := 'buildMClientCertificateV2 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(client-key-exchange-v2, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(client-key-exchange-v2), upTerm(MMS)]]] := 'buildMClientKeyExchangeV2 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(client-certificate-verify-v2, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(client-certificate-verify-v2), upTerm(MMS)]]] := 'buildMClientCertificateVerifyV2 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(client-finished-v2, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(client-finished-v2), upTerm(MMS)]]] := 'buildMClientFinishedV2 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(server-finished-v2, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(server-finished-v2), upTerm(MMS)]]] := 'buildMServerFinishedV2 [none] {empty} [none].) genThreatStrat(SACT) .
+
+  eq genThreatStrat(changeContent(client-hello-v3, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(client-hello-v3), upTerm(MMS)]]] := 'buildMClientHelloV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(second-client-hello-v3, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(second-client-hello-v3), upTerm(MMS)]]] := 'buildMSecondClientHelloV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(hello-retry-request-v3, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(hello-retry-request-v3), upTerm(MMS)]]] := 'buildMHelloRetryRequestV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(server-hello-v3, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(server-hello-v3), upTerm(MMS)]]] := 'buildMServerHelloV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(encrypted-extension-v3, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(encrypted-extension-v3), upTerm(MMS)]]] := 'buildMEncryptedExtensionV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(certificate-request-v3, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(certificate-request-v3), upTerm(MMS)]]] := 'buildMCertificateRequestV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(server-certificate-v3, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(server-certificate-v3), upTerm(MMS)]]] := 'buildMServerCertificateV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(server-certificate-verify-v3, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(server-certificate-verify-v3), upTerm(MMS)]]] := 'buildMServerCertificateVerifyV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(server-finished-v3, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(server-finished-v3), upTerm(MMS)]]] := 'buildMServerFinishedV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(client-certificate-v3, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(client-certificate-v3), upTerm(MMS)]]] := 'buildMClientCertificateV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(client-certificate-verify-v3, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(client-certificate-verify-v3), upTerm(MMS)]]] := 'buildMClientCertificateVerifyV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(client-finished-v3, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(client-finished-v3), upTerm(MMS)]]] := 'buildMClientFinishedV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(second-client-certificate-v3, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(second-client-certificate-v3), upTerm(MMS)]]] := 'buildMClientCertificateV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(second-client-certificate-verify-v3, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(second-client-certificate-verify-v3), upTerm(MMS)]]] := 'buildMClientCertificateVerifyV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(changeContent(second-client-finished-v3, MMS) -> SACT) 
+   = (sd 'mb[['changeContent[upTerm(second-client-finished-v3), upTerm(MMS)]]] := 'buildMClientFinishedV3 [none] {empty} [none].) genThreatStrat(SACT) .
+
+
+
+  eq genThreatStrat(wrongProcess(client-hello-v2) -> SACT) 
+   = (sd 'wp[['wrongProcess[upTerm(client-hello-v2)]]] := 'processMClientHelloV2 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(wrongProcess(server-hello-v2) -> SACT) 
+   = (sd 'wp[['wrongProcess[upTerm(server-hello-v2)]]] := 'processMServerHelloV2 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(wrongProcess(certificate-request-v2) -> SACT) 
+   = (sd 'wp[['wrongProcess[upTerm(certificate-request-v2)]]] := 'processMCertificateRequestV2 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(wrongProcess(server-certificate-v2) -> SACT) 
+   = (sd 'wp[['wrongProcess[upTerm(server-certificate-v2)]]] := 'processMServerCertificateV2 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(wrongProcess(server-key-exchange-v2) -> SACT) 
+   = (sd 'wp[['wrongProcess[upTerm(server-key-exchange-v2)]]] := 'processMServerKeyExchangeV2 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(wrongProcess(server-hello-done-v2) -> SACT) 
+   = (sd 'wp[['wrongProcess[upTerm(server-hello-done-v2)]]] := 'processMServerHelloDoneV2 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(wrongProcess(client-certificate-v2) -> SACT) 
+   = (sd 'wp[['wrongProcess[upTerm(client-certificate-v2)]]] := 'processMClientCertificateV2 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(wrongProcess(client-key-exchange-v2) -> SACT) 
+   = (sd 'wp[['wrongProcess[upTerm(client-key-exchange-v2)]]] := 'processMClientKeyExchangeV2 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(wrongProcess(client-certificate-verify-v2) -> SACT) 
+   = (sd 'wp[['wrongProcess[upTerm(client-certificate-verify-v2)]]] := 'processMCertificateVerifyV2 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(wrongProcess(client-finished-v2) -> SACT) 
+   = (sd 'wp[['wrongProcess[upTerm(client-finished-v2)]]] := 'processMClientFinishedV2 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(wrongProcess(server-finished-v2) -> SACT) 
+   = (sd 'wp[['wrongProcess[upTerm(server-finished-v2)]]] := 'processMServerFinishedV2 [none] {empty} [none].) genThreatStrat(SACT) .
+
+  eq genThreatStrat(wrongProcess(client-hello-v3) -> SACT) 
+   = (sd 'wp[['wrongProcess[upTerm(client-hello-v3)]]] := 'processMClientHelloV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(wrongProcess(hello-retry-request-v3) -> SACT) 
+   = (sd 'wp[['wrongProcess[upTerm(hello-retry-request-v3)]]] := 'processMHelloRetryRequestV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(wrongProcess(server-hello-v3) -> SACT) 
+   = (sd 'wp[['wrongProcess[upTerm(server-hello-v3)]]] := 'processMServerHelloV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(wrongProcess(encrypted-extension-v3) -> SACT) 
+   = (sd 'wp[['wrongProcess[upTerm(encrypted-extension-v3)]]] := 'processMEncryptedExtensionV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(wrongProcess(certificate-request-v3) -> SACT) 
+   = (sd 'wp[['wrongProcess[upTerm(certificate-request-v3)]]] := 'processMCertificateRequestV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(wrongProcess(server-certificate-v3) -> SACT) 
+   = (sd 'wp[['wrongProcess[upTerm(server-certificate-v3)]]] := 'processMServerCertificateV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(wrongProcess(server-certificate-verify-v3) -> SACT) 
+   = (sd 'wp[['wrongProcess[upTerm(server-certificate-verify-v3)]]] := 'processMServerCertificateVerifyV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(wrongProcess(server-finished-v3) -> SACT) 
+   = (sd 'wp[['wrongProcess[upTerm(server-finished-v3)]]] := 'processMServerFinishedV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(wrongProcess(client-certificate-v3) -> SACT) 
+   = (sd 'wp[['wrongProcess[upTerm(client-certificate-v3)]]] := 'processMClientCertificateV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(wrongProcess(client-certificate-verify-v3) -> SACT) 
+   = (sd 'wp[['wrongProcess[upTerm(client-certificate-verify-v3)]]] := 'processMClientCertificateVerifyV3 [none] {empty} [none].) genThreatStrat(SACT) .
+  eq genThreatStrat(wrongProcess(client-finished-v3) -> SACT) 
+   = (sd 'wp[['wrongProcess[upTerm(client-finished-v3)]]] := 'processMClientFinishedV3 [none] {empty} [none].) genThreatStrat(SACT) .
+
+  eq genThreatStrat(reorder(TI, HTY1, HTY2) -> SACT)
+   = (sd 'ord[['reorder[upTerm(TI), upTerm(HTY1), upTerm(HTY2)]]] :=  'reorderMsg [none] {empty} [none] .) genThreatStrat(SACT) .
+
+  eq genThreatStrat(none) = none .
+
+  op ruleTerm : Qid Qid -> Rule .
+ ceq ruleTerm(MID, RID) = RULE
+  if (RULE RULES) := upRls(MID, true)
+  /\ checkLabel(RULE, RID) .
+  
+  op checkLabel : Rule Qid -> Bool .
+  eq checkLabel(rl T1 => T2 [label(RID) AS] ., RID) = true .
+  eq checkLabel(crl T1 => T2 if COND [label(RID) AS] ., RID) = true .
+  eq checkLabel(RULE, RID) = false [owise] .
+
+  op modify : RuleSet List{MessageModification} -> RuleSet .
+  eq modify(RULE RULES, MML) = modify2(RULE, MML) modify(RULES, MML) .
+  eq modify(none, MML) = none .
+
+  op modify2 : Rule List{MessageModification} -> RuleSet .
+  eq modify2(crl T1 => T2 if COND [AS] ., MM MML) 
+   = crl T1 => 'modifyObj[T2, upTerm(MM)] if COND [changeLabel(AS)] .
+     modify2(crl T1 => T2 if COND [AS] ., MML) .
+  eq modify2(RULE, nil) = none .
+
+  --- op modify2 : Rule List{MessageModification} -> RuleSet .
+  --- eq modify2(crl T1 => T2 if COND /\ 'MC:MsgContent := T3 /\ COND' [AS] ., MM MML) 
+  ---  = crl T1 => 'modifyObj[T2] if COND /\ 'MC:MsgContent := 'modifyMsg[T3, upTerm(MM)] /\ COND' [changeLabel(AS)] .
+  ---    modify2(crl T1 => T2 if COND /\ 'MC:MsgContent := T3 /\ COND' [AS] ., MML) .
+  --- eq modify2(RULE, nil) = none .
+
+  op modify3 : Rule -> Rule .
+  eq modify3(crl T1 => T2 if COND /\ 'not_[T3] = 'true.Bool [AS] .)
+   = (crl T1 => T2 if COND [changeLabel(AS)] .) .
+
+  op modify4 : Rule TId HandshakeType HandshakeType -> Rule .
+  eq modify4(rl T1 => T2 [AS] ., TI, HTY1, HTY2)
+   = (rl T1 => 'changeOrder[T2, upTerm(TI), upTerm(HTY1), upTerm(HTY2)] [changeLabel(AS)] .) .
+
+  op changeLabel : AttrSet -> AttrSet .
+  eq changeLabel(label('buildClientHelloV2) print(QL:QidList) AS) = label('buildMClientHelloV2) print('"buildMClientHelloV2") AS .
+  eq changeLabel(label('buildServerHelloV2) print(QL:QidList) AS) = label('buildMServerHelloV2) print('"buildMServerHelloV2") AS .
+  eq changeLabel(label('buildServerCertificateV2) print(QL:QidList) AS) = label('buildMServerCertificateV2) print('"buildMServerCertificateV2") AS .
+  eq changeLabel(label('buildServerKeyExchangeV2) print(QL:QidList) AS) = label('buildMServerKeyExchangeV2) print('"buildMServerKeyExchangeV2") AS .
+  eq changeLabel(label('buildCertificateRequestV2) print(QL:QidList) AS) = label('buildMCertificateRequestV2) print('"buildMCertificateRequestV2") AS .
+  eq changeLabel(label('buildServerHelloDoneV2) print(QL:QidList) AS) = label('buildMServerHelloDoneV2) print('"buildMServerHelloDoneV2") AS .
+  eq changeLabel(label('buildClientCertificateV2) print(QL:QidList) AS) = label('buildMClientCertificateV2) print('"buildMClientCertificateV2") AS .
+  eq changeLabel(label('buildClientKeyExchangeV2) print(QL:QidList) AS) = label('buildMClientKeyExchangeV2) print('"buildMClientKeyExchangeV2") AS .
+  eq changeLabel(label('buildClientCertificateVerifyV2) print(QL:QidList) AS) = label('buildMClientCertificateVerifyV2) print('"buildMClientCertificateVerifyV2") AS .
+  eq changeLabel(label('buildClientChangeCipherSpecV2) print(QL:QidList) AS) = label('buildMClientChangeCipherSpecV2) print('"buildMClientChangeCipherSpecV2") AS .
+  eq changeLabel(label('buildClientFinishedV2) print(QL:QidList) AS) = label('buildMClientFinishedV2) print('"buildMClientFinishedV2") AS .
+  eq changeLabel(label('buildServerChangeCipherSpecV2) print(QL:QidList) AS) = label('buildMServerChangeCipherSpecV2) print('"buildMServerChangeCipherSpecV2") AS .
+  eq changeLabel(label('buildServerFinishedV2) print(QL:QidList) AS) = label('buildMServerFinishedV2) print('"buildMServerFinishedV2") AS .
+
+  eq changeLabel(label('buildClientHelloV3) print(QL:QidList) AS) = label('buildMClientHelloV3) print('"buildMClientHelloV3") AS .
+  eq changeLabel(label('buildSecondClientHelloV3) print(QL:QidList) AS) = label('buildMSecondClientHelloV3) print('"buildMSecondClientHelloV3") AS .
+  eq changeLabel(label('buildHelloRetryRequestV3) print(QL:QidList) AS) = label('buildMHelloRetryRequestV3) print('"buildMHelloRetryRequestV3") AS .
+  eq changeLabel(label('buildServerHelloV3) print(QL:QidList) AS) = label('buildMServerHelloV3) print('"buildMServerHelloV3") AS .
+  eq changeLabel(label('buildEncryptedExtensionV3) print(QL:QidList) AS) = label('buildMEncryptedExtensionV3) print('"buildMEncryptedExtensionV3") AS .
+  eq changeLabel(label('buildCertificateRequestV3) print(QL:QidList) AS) = label('buildMCertificateRequestV3) print('"buildMCertificateRequestV3") AS .
+  eq changeLabel(label('buildServerCertificateV3) print(QL:QidList) AS) = label('buildMServerCertificateV3) print('"buildMServerCertificateV3") AS .
+  eq changeLabel(label('buildServerCertificateVerifyV3) print(QL:QidList) AS) = label('buildMServerCertificateVerifyV3) print('"buildMServerCertificateVerifyV3") AS .
+  eq changeLabel(label('buildServerFinishedV3) print(QL:QidList) AS) = label('buildMServerFinishedV3) print('"buildMServerFinishedV3") AS .
+  eq changeLabel(label('buildClientCertificateV3) print(QL:QidList) AS) = label('buildMClientCertificateV3) print('"buildMClientCertificateV3") AS .
+  eq changeLabel(label('buildClientCertificateVerifyV3) print(QL:QidList) AS) = label('buildMClientCertificateVerifyV3) print('"buildMClientCertificateVerifyV3") AS .
+  eq changeLabel(label('buildClientFinishedV3) print(QL:QidList) AS) = label('buildMClientFinishedV3) print('"buildMClientFinishedV3") AS .
+  eq changeLabel(label('processClientHelloV2) print(QL:QidList) AS) = label('processMClientHelloV2) print('"processMClientHelloV2") AS .
+  eq changeLabel(label('processServerHelloV2) print(QL:QidList) AS) = label('processMServerHelloV2) print('"processMServerHelloV2") AS .
+  eq changeLabel(label('processServerCertificateV2) print(QL:QidList) AS) = label('processMServerCertificateV2) print('"processMServerCertificateV2") AS .
+  eq changeLabel(label('processServerKeyExchangeV2) print(QL:QidList) AS) = label('processMServerKeyExchangeV2) print('"processMServerKeyExchangeV2") AS .
+  eq changeLabel(label('processCertificateRequestV2) print(QL:QidList) AS) = label('processMCertificateRequestV2) print('"processMCertificateRequestV2") AS .
+  eq changeLabel(label('processServerHelloDoneV2) print(QL:QidList) AS) = label('processMServerHelloDoneV2) print('"processMServerHelloDoneV2") AS .
+  eq changeLabel(label('processClientCertificateV2) print(QL:QidList) AS) = label('processMClientCertificateV2) print('"processMClientCertificateV2") AS .
+  eq changeLabel(label('processClientKeyExchangeV2) print(QL:QidList) AS) = label('processMClientKeyExchangeV2) print('"processMClientKeyExchangeV2") AS .
+  eq changeLabel(label('processCertificateVerifyV2) print(QL:QidList) AS) = label('processMCertificateVerifyV2) print('"processMClientCertificateVerifyV2") AS .
+  eq changeLabel(label('processClientChangeCipherSpecV2) print(QL:QidList) AS) = label('processMClientChangeCipherSpecV2) print('"processMClientChangeCipherSpecV2") AS .
+  eq changeLabel(label('processClientFinishedV2) print(QL:QidList) AS) = label('processMClientFinishedV2) print('"processMClientFinishedV2") AS .
+  eq changeLabel(label('processServerChangeCipherSpecV2) print(QL:QidList) AS) = label('processMServerChangeCipherSpecV2) print('"processMServerChangeCipherSpecV2") AS .
+  eq changeLabel(label('processServerFinishedV2) print(QL:QidList) AS) = label('processMServerFinishedV2) print('"processMServerFinishedV2") AS .
+
+  eq changeLabel(label('processClientHelloV3) print(QL:QidList) AS) = label('processMClientHelloV3) print('"processMClientHelloV3") AS .
+  eq changeLabel(label('processHelloRetryRequestV3) print(QL:QidList) AS) = label('processMHelloRetryRequestV3) print('"processMHelloRetryRequestV3") AS .
+  eq changeLabel(label('processServerHelloV3) print(QL:QidList) AS) = label('processMServerHelloV3) print('"processMServerHelloV3") AS .
+  eq changeLabel(label('processEncryptedExtensionV3) print(QL:QidList) AS) = label('processMEncryptedExtensionV3) print('"processMEncryptedExtensionV3") AS .
+  eq changeLabel(label('processCertificateRequestV3) print(QL:QidList) AS) = label('processMCertificateRequestV3) print('"processMCertificateRequestV3") AS .
+  eq changeLabel(label('processServerCertificateV3) print(QL:QidList) AS) = label('processMServerCertificateV3) print('"processMServerCertificateV3") AS .
+  eq changeLabel(label('processServerCertificateVerifyV3) print(QL:QidList) AS) = label('processMServerCertificateVerifyV3) print('"processMServerCertificateVerifyV3") AS .
+  eq changeLabel(label('processServerFinishedV3) print(QL:QidList) AS) = label('processMServerFinishedV3) print('"processMServerFinishedV3") AS .
+  eq changeLabel(label('processClientCertificateV3) print(QL:QidList) AS) = label('processMClientCertificateV3) print('"processMClientCertificateV3") AS .
+  eq changeLabel(label('processClientCertificateVerifyV3) print(QL:QidList) AS) = label('processMClientCertificateVerifyV3) print('"processMClientCertificateVerifyV3") AS .
+  eq changeLabel(label('processClientFinishedV3) print(QL:QidList) AS) = label('processMClientFinishedV3) print('"processMClientFinishedV3") AS .
+
+  eq changeLabel(label('sendMsg) print(QL:QidList) AS) = label('reorderMsg) print('"Reorder Message") AS .
+
+  eq changeLabel(AS) = AS [owise] .
+
+
+  op getId : Object -> TId .
+  eq getId(< TI:TId : C:TLS | ATTS:AttributeSet >) = TI:TId .
+  
+  op getNonceCtr : Object -> Nat .
+  eq getNonceCtr(< TI:TId : C:TLS | nonceCtr : N:Nat, ATTS:AttributeSet >) = N:Nat .
+endsm
+
+fmod FORMAL-ACTION-FILTER is
+  protecting LIST{FormalAction} .
+  
+  vars TI TI' : TId .
+  var OIDL : List{TId} .
+  var AF : FormalAction .
+  var AFL : List{FormalAction} .
+  var PV : ProtocolVersion .
+  var PVL : List{ProtocolVersion} .
+  var CSL : List{CipherSuite} .
+  var CML : List{CompressionMethod} .
+  var NGL : List{NamedGroup} .
+  var SAL : List{SignatureAlgorithm} .
+  var EML : List{PreSharedKeyExchangeMode} .
+  var PSK : Nonce .
+  var B : Bool .
+  var CERT : Certificate .
+  var KEY : Key .
+  vars MC MC' MC'' : MsgContent .
+
+  op filterTT : List{FormalAction} -> List{FormalAction} .
+  eq filterTT(initializePV(TI, PV) AFL)        = filterTT(AFL) .  
+  eq filterTT(initializeCS(TI, CSL) AFL)       = filterTT(AFL) .
+  eq filterTT(initializeCM(TI, CML) AFL)       = filterTT(AFL) .
+  eq filterTT(initializeNC(TI, NGL) AFL)       = filterTT(AFL) .
+  eq filterTT(initializeNG(TI, NGL) AFL)       = filterTT(AFL) .
+  eq filterTT(initializeSV(TI, PVL) AFL)       = filterTT(AFL) .
+  eq filterTT(initializeSA(TI, SAL) AFL)       = filterTT(AFL) .
+  eq filterTT(initializeEM(TI, EML) AFL)       = filterTT(AFL) .
+  eq filterTT(initializeKS(TI, NGL) AFL)       = filterTT(AFL) .
+  eq filterTT(initializeNST(TI, B) AFL)        = filterTT(AFL) .
+  eq filterTT(initializeCR(TI, B) AFL)         = filterTT(AFL) .
+  eq filterTT(initializeED(TI, B) AFL)         = filterTT(AFL) .
+  eq filterTT(initializePCA(TI, B) AFL)        = filterTT(AFL) .
+  eq filterTT(initializeKU(TI, B) AFL)         = filterTT(AFL) .
+  eq filterTT(AF AFL) = AF filterTT(AFL) [owise] .
+  eq filterTT(nil) = nil .
+
+  op filterTG : List{FormalAction} -> List{FormalAction} .
+  eq filterTG(connectF(TI) AFL) = connectF(TI) filterTG(AFL) .
+  eq filterTG(acceptF(TI) AFL) = acceptF(TI) filterTG(AFL) .
+  eq filterTG(closeF(TI) AFL) = closeF(TI) filterTG(AFL) .
+  eq filterTG(genCertificatePrivateKey(KEY) AFL) = genCertificatePrivateKey(KEY) filterTG(AFL) .
+  eq filterTG(initializePV(TI, PV) AFL)        = initializePV(TI, PV) filterTG(AFL) .  
+  eq filterTG(initializeCS(TI, CSL) AFL)       = initializeCS(TI, CSL) filterTG(AFL) .
+  eq filterTG(initializeCM(TI, CML) AFL)       = initializeCM(TI, CML) filterTG(AFL) .
+  eq filterTG(initializeNC(TI, NGL) AFL)       = initializeNC(TI, NGL) filterTG(AFL) .
+  eq filterTG(initializeNG(TI, NGL) AFL)       = initializeNG(TI, NGL) filterTG(AFL) .
+  eq filterTG(initializeSV(TI, PVL) AFL)       = initializeSV(TI, PVL) filterTG(AFL) .
+  eq filterTG(initializeSA(TI, SAL) AFL)       = initializeSA(TI, SAL) filterTG(AFL) .
+  eq filterTG(initializeEM(TI, EML) AFL)       = initializeEM(TI, EML) filterTG(AFL) .
+  eq filterTG(initializeKS(TI, NGL) AFL)       = initializeKS(TI, NGL) filterTG(AFL) .
+  eq filterTG(initializeNST(TI, B) AFL)        = initializeNST(TI, B) filterTG(AFL) .
+  eq filterTG(initializeCR(TI, B) AFL)         = initializeCR(TI, B) filterTG(AFL) .
+  eq filterTG(initializeED(TI, B) AFL)         = initializeED(TI, B) filterTG(AFL) .
+  eq filterTG(initializePCA(TI, B) AFL)        = initializePCA(TI, B) filterTG(AFL) .
+  eq filterTG(initializeKU(TI, B) AFL)         = initializeKU(TI, B) filterTG(AFL) .
+  eq filterTG(AF AFL) = filterTG(AFL) [owise] .
+  eq filterTG(nil) = nil .
+
+  op filterVS : List{FormalAction} List{TId} -> List{FormalAction} .
+  eq filterVS(buildClientHelloV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildClientCertificateV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildClientKeyExchangeV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildClientCertificateVerifyV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildClientChangeCipherSpecV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildClientFinishedV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildServerHelloV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildServerCertificateV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildServerKeyExchangeV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildCertificateRequestV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildServerHelloDoneV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildServerChangeCipherSpecV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildServerFinishedV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+
+  eq filterVS(errorClientHelloV2(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorClientCertificateV2(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorCertificateRequestV2(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorClientKeyExchangeV2(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorCertificateVerifyV2(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorClientChangeCipherSpecV2(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorClientFinishedV2(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorServerHelloV2(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorServerCertificateV2(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorServerKeyExchangeV2(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorServerHelloDoneV2(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorServerChangeCipherSpecV2(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorServerFinishedV2(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+
+  eq filterVS(buildMClientHelloV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildMClientCertificateV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildMClientKeyExchangeV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildMClientCertificateVerifyV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildMClientChangeCipherSpecV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildMClientFinishedV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildMServerHelloV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildMServerCertificateV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildMServerKeyExchangeV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildMCertificateRequestV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildMServerHelloDoneV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildMServerChangeCipherSpecV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildMServerFinishedV2(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+
+  eq filterVS(buildClientHelloV3(MC, TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC)) filterVS(AFL, OIDL) .
+  eq filterVS(buildEarlyDataV3(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildClientCertificateV3(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildClientCertificateV3(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildClientCertificateVerifyV3(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildClientFinishedV3(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildClientKeyUpdateRequestV3(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildHelloRetryRequestV3(MC, TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC)) filterVS(AFL, OIDL) .
+  eq filterVS(buildServerHelloV3(MC, TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC)) filterVS(AFL, OIDL) .
+  eq filterVS(buildEncryptedExtensionV3(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildCertificateRequestV3(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildServerCertificateV3(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildServerCertificateVerifyV3(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildServerFinishedV3(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildNewSessionTicketV3(MC, MC', PSK, TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildPostClientAuthenticationV3(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildServerKeyUpdateRequestV3(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+
+  eq filterVS(errorClientHelloV3(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorClientCertificateV3(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorClientCertificateVerifyV3(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorClientFinishedV3(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorClientKeyUpdateRequestV3(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorHelloRetryRequestV3(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorServerHelloV3(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorEncryptedExtensionV3(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorCertificateRequestV3(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorServerCertificateV3(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorServerCertificateVerifyV3(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorServerFinishedV3(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorPostClientAuthenticationV3(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+  eq filterVS(errorServerKeyUpdateRequestV3(MC, MC', MC'', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC'')) filterVS(AFL, OIDL) .
+
+
+  eq filterVS(buildMClientHelloV3(MC, TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC)) filterVS(AFL, OIDL) .
+  eq filterVS(buildMClientCertificateV3(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildMClientCertificateV3(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildMClientCertificateVerifyV3(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildMClientFinishedV3(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildMHelloRetryRequestV3(MC, TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC)) filterVS(AFL, OIDL) .
+  eq filterVS(buildMServerHelloV3(MC, TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC)) filterVS(AFL, OIDL) .
+  eq filterVS(buildMEncryptedExtensionV3(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildMCertificateRequestV3(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildMServerCertificateV3(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildMServerCertificateVerifyV3(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+  eq filterVS(buildMServerFinishedV3(MC, MC', TI) AFL, TI' OIDL) = send(TI',TI,unwrap(MC')) filterVS(AFL, OIDL) .
+
+  eq filterVS(AF AFL, TI OIDL) = filterVS(AFL, OIDL) [owise] .
+  eq filterVS(nil, nil) = nil .
+
+  op unwrap : MsgContent -> MsgContent .
+  eq unwrap(MC encrypt(KEY, MC')) = MC MC' .
+  eq unwrap(MC) = MC [owise] .
+endfm
+
+smod RUN-SCENARIO is
+  protecting GEN-THREAT-MODULE .
+  protecting MODIFY-MESSAGE-AND-OBJECT .
+  protecting SCENARIO-GENERATOR .
+  protecting FORMAL-ACTION-FILTER .
+  protecting EXECUTE-SCENARIO-STRATEGY .
+  protecting LIST{ScenarioResult} .
+
+  var CONF : Configuration .
+  var CWA : ConfWithAction .
+  vars SACT : ScenarioAction .
+  var ACT : ScenarioActionItem .
+  var MODULE : Module .
+  var RESULT : Term .
+  var TYPE : Type .
+  vars SCEN1 SCEN2 : Scen .
+  var TI : TId .
+  var N : Nat .
+  vars TCONF TCONF' : TLSConfiguration .
+  var VISUAL : List{FormalAction} .
+  var HT : HandshakeType .
+  var MMS : Set{MessageModification} .
+
+  sort ConfWithAction? .
+  subsort ConfWithAction < ConfWithAction? .
+  op errorConf : -> ConfWithAction? [ctor] .
+
+  op runScenario : Configuration ScenarioAction -> List{ScenarioResult} .
+  op runScenario : Configuration ScenarioAction Nat -> List{ScenarioResult} .
+  eq runScenario(CONF, SACT) = runScenario(CONF, SACT, 0) .
+
+ ceq runScenario(CONF, SACT, N) 
+   = (ScenarioStart SCEN1 
+      ConfigStart   SCEN2)
+	 runScenario(CONF, SACT, s N)
+  if MODULE := genThreatModule(SACT)
+  /\ {RESULT, TYPE} := metaSrewrite(MODULE, upTerm({CONF | nil : nil}), 'execute[[upTerm(SACT)]], breadthFirst, N) 
+  /\ CWA := downTerm(RESULT, errorConf) 
+  /\ SCEN1 := gen(filterTT(actions(getTesterId(SACT), CWA))) 
+  /\ SCEN2 := gen(filterTG(actions(getTargetId(SACT), CWA))) .
+
+ ceq runScenario(CONF, SACT, N) = nil
+  if MODULE := genThreatModule(SACT)
+  /\ failure == metaSrewrite(MODULE, upTerm({CONF | nil : nil}), 'execute[[upTerm(SACT)]], breadthFirst, N) .
+
+
+  op runScenarioWithVisual : Configuration ScenarioAction -> List{ScenarioResult} .
+  op runScenarioWithVisual : Configuration ScenarioAction Nat -> List{ScenarioResult} .
+  eq runScenarioWithVisual(CONF, SACT) = runScenarioWithVisual(CONF, SACT, 0) .
+
+ ceq runScenarioWithVisual(CONF, SACT, N) 
+   = (ScenarioStart SCEN1 
+      ConfigStart   SCEN2 
+	  VisualStart   VISUAL)
+	 runScenarioWithVisual(CONF, SACT, s N)
+  if MODULE := genThreatModule(SACT)
+  /\ {RESULT, TYPE} := metaSrewrite(MODULE, upTerm({CONF | nil : nil}), 'execute[[upTerm(SACT)]], breadthFirst, N) 
+  /\ CWA := downTerm(RESULT, errorConf) 
+  /\ SCEN1 := gen(filterTT(actions(getTesterId(SACT), CWA))) 
+  /\ SCEN2 := gen(filterTG(actions(getTargetId(SACT), CWA))) 
+  /\ VISUAL := filterVS(actions((getTesterId(SACT), getTargetId(SACT)), CWA), ids(CWA)) .
+
+ ceq runScenarioWithVisual(CONF, SACT, N) = nil
+  if MODULE := genThreatModule(SACT)
+  /\ failure == metaSrewrite(MODULE, upTerm({CONF | nil : nil}), 'execute[[upTerm(SACT)]], breadthFirst, N) .
+
+  op getTesterId : ScenarioAction -> TId .
+  eq getTesterId(init(TCONF tester(TI) TCONF') -> SACT) = TI .
+
+  op getTargetId : ScenarioAction -> TId .
+  eq getTargetId(init(TCONF target(TI) TCONF') -> SACT) = TI .
+
+endsm

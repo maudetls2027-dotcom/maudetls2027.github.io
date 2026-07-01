@@ -1,0 +1,5 @@
+smod TLS-NORMAL-BEHAVIOR-STRATEGY is
+  protecting CONFIGURATION-WITH-ACTION .
+
+  strat normalBehavior @ ConfWithAction .
+endsm

@@ -1,0 +1,250 @@
+smod RFC-8446-ADDITIONAL is
+  protecting RUN-SCENARIO .
+  protecting TLS-INITIAL-SYSTEM .
+  protecting TLS-ALL-VALUES .
+  protecting SET{BehaviorDVSpec} .
+
+  --- Additional P5/P4 scenarios for TLS 1.3 PSK/resumption handshakes.
+  --- Certificate and CertificateVerify omissions are intentionally excluded:
+  --- they are normal in PSK-selected handshakes.
+  --- Load after requirements/8446-base.maude.
+  op initConf-psk-dhe : -> TLSConfiguration .
+  eq initConf-psk-dhe =
+                   iversion(N1 . CI, TLS-13)
+                   iversion(N2 . SI, TLS-13)
+                   icipherSuites(N1 . CI, TLS-AES-128-CCM-SHA256)
+                   icipherSuites(N2 . SI, TLS-AES-128-CCM-SHA256)
+                   icompressions(N1 . CI, no-compression)
+                   icompressions(N2 . SI, no-compression)
+                   icertificates(N1 . CI, makeCertificate(N1 . CI, ecdsa, {ecdsa,sha256}, ecdsa))
+                   icertificates(N2 . SI, makeCertificate(N2 . SI, ecdsa, {ecdsa,sha256}, ecdsa))
+                   ipublicKeys(N1 . CI, makePubKey(CA, ecdsa))
+                   ipublicKeys(N2 . SI, makePubKey(CA, ecdsa))
+                   iprivateKeys(N1 . CI, makePrvKey(N1 . CI, ecdsa))
+                   iprivateKeys(N2 . SI, makePrvKey(N2 . SI, ecdsa))
+                   isupported-versions(N1 . CI, (TLS-13 nil))
+                   isupported-versions(N2 . SI, (TLS-13 nil))
+                   isignature-algorithms(N1 . CI, ({ecdsa,sha256} nil))
+                   isignature-algorithms(N2 . SI, ({ecdsa,sha256} nil))
+                   isupported-groups(N1 . CI, (secp256r1 nil))
+                   isupported-groups(N2 . SI, (secp256r1 nil))
+                   icertificateRequest(N2 . SI)
+                   ikey-shares(N1 . CI, (secp256r1 nil))
+                   ikey-shares(N2 . SI, (secp256r1 nil))
+                   ipsk-key-exchange-modes(N1 . CI, (psk-dhe-ke nil))
+                   ipsk-key-exchange-modes(N2 . SI, (psk-dhe-ke nil))
+                   inewSessionTicketReq(N2 . SI)
+                   inewSessionTicketWait(N1 . CI)
+                   ireconnect(N1 . CI)
+                   ireconnect(N2 . SI) .
+
+  op initConf-psk-dhe-hrr : -> TLSConfiguration .
+  eq initConf-psk-dhe-hrr =
+                   iversion(N1 . CI, TLS-13)
+                   iversion(N2 . SI, TLS-13)
+                   icipherSuites(N1 . CI, TLS-AES-128-CCM-SHA256)
+                   icipherSuites(N2 . SI, TLS-AES-128-CCM-SHA256)
+                   icompressions(N1 . CI, no-compression)
+                   icompressions(N2 . SI, no-compression)
+                   icertificates(N1 . CI, makeCertificate(N1 . CI, ecdsa, {ecdsa,sha256}, ecdsa))
+                   icertificates(N2 . SI, makeCertificate(N2 . SI, ecdsa, {ecdsa,sha256}, ecdsa))
+                   ipublicKeys(N1 . CI, makePubKey(CA, ecdsa))
+                   ipublicKeys(N2 . SI, makePubKey(CA, ecdsa))
+                   iprivateKeys(N1 . CI, makePrvKey(N1 . CI, ecdsa))
+                   iprivateKeys(N2 . SI, makePrvKey(N2 . SI, ecdsa))
+                   isupported-versions(N1 . CI, (TLS-13 nil))
+                   isupported-versions(N2 . SI, (TLS-13 nil))
+                   isignature-algorithms(N1 . CI, ({ecdsa,sha256} nil))
+                   isignature-algorithms(N2 . SI, ({ecdsa,sha256} nil))
+                   isupported-groups(N1 . CI, (secp521r1 secp256r1 nil))
+                   isupported-groups(N2 . SI, (secp256r1 nil))
+                   icertificateRequest(N2 . SI)
+                   ikey-shares(N1 . CI, (secp521r1 nil))
+                   ikey-shares(N2 . SI, (secp256r1 nil))
+                   ipsk-key-exchange-modes(N1 . CI, (psk-dhe-ke nil))
+                   ipsk-key-exchange-modes(N2 . SI, (psk-dhe-ke nil))
+                   inewSessionTicketReq(N2 . SI)
+                   inewSessionTicketWait(N1 . CI)
+                   ireconnect(N1 . CI)
+                   ireconnect(N2 . SI) .
+
+  op initConf-psk-ke : -> TLSConfiguration .
+  eq initConf-psk-ke =
+                   iversion(N1 . CI, TLS-13)
+                   iversion(N2 . SI, TLS-13)
+                   icipherSuites(N1 . CI, TLS-AES-128-CCM-SHA256)
+                   icipherSuites(N2 . SI, TLS-AES-128-CCM-SHA256)
+                   icompressions(N1 . CI, no-compression)
+                   icompressions(N2 . SI, no-compression)
+                   icertificates(N1 . CI, makeCertificate(N1 . CI, ecdsa, {ecdsa,sha256}, ecdsa))
+                   icertificates(N2 . SI, makeCertificate(N2 . SI, ecdsa, {ecdsa,sha256}, ecdsa))
+                   ipublicKeys(N1 . CI, makePubKey(CA, ecdsa))
+                   ipublicKeys(N2 . SI, makePubKey(CA, ecdsa))
+                   iprivateKeys(N1 . CI, makePrvKey(N1 . CI, ecdsa))
+                   iprivateKeys(N2 . SI, makePrvKey(N2 . SI, ecdsa))
+                   isupported-versions(N1 . CI, (TLS-13 nil))
+                   isupported-versions(N2 . SI, (TLS-13 nil))
+                   isignature-algorithms(N1 . CI, ({ecdsa,sha256} nil))
+                   isignature-algorithms(N2 . SI, ({ecdsa,sha256} nil))
+                   isupported-groups(N1 . CI, (secp256r1 nil))
+                   isupported-groups(N2 . SI, (secp256r1 nil))
+                   icertificateRequest(N2 . SI)
+                   ikey-shares(N1 . CI, (secp256r1 nil))
+                   ikey-shares(N2 . SI, (secp256r1 nil))
+                   ipsk-key-exchange-modes(N1 . CI, (psk-ke nil))
+                   ipsk-key-exchange-modes(N2 . SI, (psk-ke nil))
+                   inewSessionTicketReq(N2 . SI)
+                   inewSessionTicketWait(N1 . CI)
+                   ireconnect(N1 . CI)
+                   ireconnect(N2 . SI) .
+
+  op initialCWA : -> ConfWithAction .
+  eq initialCWA = {system | nil : nil} .
+
+  --- Run with initConf-psk-dhe.
+  op behaviorDeviationSpecification1 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification1 =
+     {'scen1,
+       ruleLabel('buildEncryptedExtensionV3) and appliedNode(server) and featureMap(@reconnectInProgress |-> av[true]),
+       skip()} .
+
+  op scenarioProperty1 : -> ScenarioProperty .
+  eq scenarioProperty1 =
+     (anyStep *) ;
+     ruleLabel('scen1) ;
+     (anyStep *) ;
+     (N2 . SI . @errorLog = av[unexpected-message]) .
+
+  --- Run with initConf-psk-ke.
+  op behaviorDeviationSpecification2 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification2 =
+     {'scen2,
+       ruleLabel('buildEncryptedExtensionV3) and appliedNode(server) and featureMap(@reconnectInProgress |-> av[true]),
+       skip()} .
+
+  op scenarioProperty2 : -> ScenarioProperty .
+  eq scenarioProperty2 =
+     (anyStep *) ;
+     ruleLabel('scen2) ;
+     (anyStep *) ;
+     (N2 . SI . @errorLog = av[unexpected-message]) .
+
+  --- Run with initConf-psk-dhe-hrr.
+  op behaviorDeviationSpecification3 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification3 =
+     {'scen3,
+       ruleLabel('buildEncryptedExtensionV3) and appliedNode(server) and featureMap(@reconnectInProgress |-> av[true]),
+       skip()} .
+
+  op scenarioProperty3 : -> ScenarioProperty .
+  eq scenarioProperty3 =
+     (anyStep *) ;
+     ruleLabel('scen3) ;
+     (anyStep *) ;
+     (N2 . SI . @errorLog = av[unexpected-message]) .
+
+  --- P4: run with initConf-psk-dhe.
+  --- Keep pre_shared_key, but empty the binder list.
+  op behaviorDeviationSpecification4 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification4 =
+     {'scen4,
+       ruleLabel('buildClientHelloV3) and appliedNode(client) and featureMap(@reconnectInProgress |-> av[true]),
+       setM(#psk-binders, mv[(nil).List{Nonce}])} .
+
+  op scenarioProperty4 : -> ScenarioProperty .
+  eq scenarioProperty4 =
+     (anyStep *) ;
+     ruleLabel('scen4) ;
+     (anyStep *) ;
+     (N1 . CI . @errorLog = av[illegal-parameter]) .
+
+  --- P4: run with initConf-psk-ke.
+  --- Keep pre_shared_key, but empty the binder list.
+  op behaviorDeviationSpecification5 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification5 =
+     {'scen5,
+       ruleLabel('buildClientHelloV3) and appliedNode(client) and featureMap(@reconnectInProgress |-> av[true]),
+       setM(#psk-binders, mv[(nil).List{Nonce}])} .
+
+  op scenarioProperty5 : -> ScenarioProperty .
+  eq scenarioProperty5 =
+     (anyStep *) ;
+     ruleLabel('scen5) ;
+     (anyStep *) ;
+     (N1 . CI . @errorLog = av[illegal-parameter]) .
+
+  --- P4: run with initConf-psk-dhe.
+  --- Keep the ServerHello key_share extension, but empty its share list.
+  op behaviorDeviationSpecification6 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification6 =
+     {'scen6,
+       ruleLabel('buildServerHelloV3) and appliedNode(server) and featureMap(@reconnectInProgress |-> av[true]),
+       setM(#key-shares, mv[(nil).List{KeyShareEntry}])} .
+
+  op scenarioProperty6 : -> ScenarioProperty .
+  eq scenarioProperty6 =
+     (anyStep *) ;
+     ruleLabel('scen6) ;
+     (anyStep *) ;
+     (N2 . SI . @errorLog = av[illegal-parameter]) .
+
+  --- P4: run with initConf-psk-dhe-hrr.
+  --- Keep the final ServerHello key_share extension, but empty its share list.
+  op behaviorDeviationSpecification7 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification7 =
+     {'scen7,
+       ruleLabel('buildServerHelloV3) and appliedNode(server) and featureMap(@reconnectInProgress |-> av[true]),
+       setM(#key-shares, mv[(nil).List{KeyShareEntry}])} .
+
+  op scenarioProperty7 : -> ScenarioProperty .
+  eq scenarioProperty7 =
+     (anyStep *) ;
+     ruleLabel('scen7) ;
+     (anyStep *) ;
+     (N2 . SI . @errorLog = av[illegal-parameter]) .
+
+  --- P4: run with initConf-psk-dhe-hrr.
+  --- Keep the second ClientHello pre_shared_key extension, but empty the binder list.
+  op behaviorDeviationSpecification8 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification8 =
+     {'scen8,
+       ruleLabel('buildSecondClientHelloV3) and appliedNode(client) and featureMap(@reconnectInProgress |-> av[true]),
+       setM(#psk-binders, mv[(nil).List{Nonce}])} .
+
+  op scenarioProperty8 : -> ScenarioProperty .
+  eq scenarioProperty8 =
+     (anyStep *) ;
+     ruleLabel('scen8) ;
+     (anyStep *) ;
+     (N1 . CI . @errorLog = av[illegal-parameter]) .
+
+  --- P4: run with initConf-psk-dhe-hrr.
+  --- Keep the second ClientHello supported_groups extension, but empty it.
+  op behaviorDeviationSpecification9 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification9 =
+     {'scen9,
+       ruleLabel('buildSecondClientHelloV3) and appliedNode(client) and featureMap(@reconnectInProgress |-> av[true]),
+       setM(#supported-groups, mv[(nil).List{NamedGroup}])} .
+
+  op scenarioProperty9 : -> ScenarioProperty .
+  eq scenarioProperty9 =
+     (anyStep *) ;
+     ruleLabel('scen9) ;
+     (anyStep *) ;
+     (N1 . CI . @errorLog = av[illegal-parameter]) .
+
+  --- P4: run with initConf-psk-dhe-hrr.
+  --- Keep the second ClientHello signature_algorithms extension, but empty it.
+  op behaviorDeviationSpecification10 : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification10 =
+     {'scen10,
+       ruleLabel('buildSecondClientHelloV3) and appliedNode(client) and featureMap(@reconnectInProgress |-> av[true]),
+       setM(#signature-algorithms, mv[(nil).List{SignatureAlgorithm}])} .
+
+  op scenarioProperty10 : -> ScenarioProperty .
+  eq scenarioProperty10 =
+     (anyStep *) ;
+     ruleLabel('scen10) ;
+     (anyStep *) ;
+     (N1 . CI . @errorLog = av[illegal-parameter]) .
+endsm

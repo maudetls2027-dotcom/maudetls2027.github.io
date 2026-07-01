@@ -1,0 +1,313 @@
+smod TEST-STRATEGY is
+  protecting LINK-OBJECT .
+  protecting CONNECT-V3-API .
+  protecting ACCEPT-V3-API .
+  protecting CONFIGURATION-WITH-ACTION .
+  protecting FORMAL-SCENARIO-GENERATOR .
+  protecting INTERNAL-FORMAL-SCENARIO-GENERATOR .
+  protecting TLS-INITIAL-SYSTEM .
+  protecting RUN-SCENARIO .
+  protecting MODIFY-MESSAGE-AND-OBJECT .
+  protecting TLS-NORMAL-BEHAVIOR-STRATEGY-V3 .
+
+  -----------------------------------
+  --- TLS 1.3 (RFC 8446) HRR Mode ---
+  -----------------------------------
+
+  op initConf : -> TLSConfiguration .
+  eq initConf = iversion(N1 . CI, TLS-13)
+                 iversion(N2 . SI, TLS-13)
+                 icipherSuites(N1 . CI, TLS-AES-128-CCM-SHA256)
+                 icipherSuites(N2 . SI, TLS-AES-128-CCM-SHA256)
+                 icompressions(N1 . CI, no-compression)
+                 icompressions(N2 . SI, no-compression)
+                 icertificates(N1 . CI, cert1(N1 . CI))
+                 icertificates(N2 . SI, cert1(N2 . SI))
+                 ipublicKeys(N1 . CI, pubKey1(CA))
+                 ipublicKeys(N2 . SI, pubKey1(CA))
+                 iprivateKeys(N1 . CI, prvKey1(N1 . CI))
+                 iprivateKeys(N2 . SI, prvKey1(N2 . SI))
+                 isupported-versions(N1 . CI, (TLS-13 nil))
+                 isupported-versions(N2 . SI, (TLS-13 nil))
+                 isignature-algorithms(N1 . CI, ({ecdsa,sha256} nil))
+                 isignature-algorithms(N2 . SI, ({ecdsa,sha256} nil))
+                 isupported-groups(N1 . CI, (secp256r1 secp521r1 nil))
+                 isupported-groups(N2 . SI, (secp521r1 nil))
+                 ikey-shares(N1 . CI, (secp256r1))
+                 ikey-shares(N2 . SI, (secp521r1 nil)) .
+  
+  --- As with the ServerHello, a HelloRetryRequest MUST NOT contain any extensions that were not first offered by the client in its
+  --- ClientHello, with the exception of optionally the "cookie"
+  op scen1 : -> ScenarioAction .
+  eq scen1 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(hello-retry-request-v3, {extensions, add(v[signature-algorithms, *(1)])}) ->
+             assert(((N2 . SI) . errorLog) == v[handshake-failure])  -> close(N1 . CI, N2 . SI) .
+
+  op scen2 : -> ScenarioAction .
+  eq scen2 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(hello-retry-request-v3, {extensions, add(v[supported-groups, *(1)])}) ->
+             assert(((N2 . SI) . errorLog) == v[handshake-failure])  -> close(N1 . CI, N2 . SI) .
+
+  op scen3 : -> ScenarioAction .
+  eq scen3 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(hello-retry-request-v3, {extensions, add(v[psk-key-exchange-modes, *(1)])}) ->
+             assert(((N2 . SI) . errorLog) == v[handshake-failure])  -> close(N1 . CI, N2 . SI) .
+
+  op scen4 : -> ScenarioAction .
+  eq scen4 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(hello-retry-request-v3, {extensions, add(v[early-data])}) ->
+             assert(((N2 . SI) . errorLog) == v[handshake-failure])  -> close(N1 . CI, N2 . SI) .
+
+  op scen5 : -> ScenarioAction .
+  eq scen5 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(hello-retry-request-v3, {extensions, add(v[selected-identifier, 0])}) ->
+             assert(((N2 . SI) . errorLog) == v[handshake-failure])  -> close(N1 . CI, N2 . SI) .
+
+  op scen6 : -> ScenarioAction .
+  eq scen6 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(hello-retry-request-v3, {extensions, add(v[post-handshake])}) ->
+             assert(((N2 . SI) . errorLog) == v[handshake-failure])  -> close(N1 . CI, N2 . SI) .
+
+
+  --- The server's extension MUST contain "supported_version" and "key_share" extensions.
+  op scen7 : -> ScenarioAction .
+  eq scen7 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(hello-retry-request-v3, {extensions, delete(v[supported-versions])}) ->
+             assert(((N2 . SI) . errorLog) == v[protocol-version])  -> close(N1 . CI, N2 . SI) .
+
+  op scen8 : -> ScenarioAction .
+  eq scen8 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(hello-retry-request-v3, {extensions, delete(v[key-shares-groups])}) ->
+             assert(((N2 . SI) . errorLog) == v[illegal-parameter])  -> close(N1 . CI, N2 . SI) .
+
+  --- There MUST NOT be more than one extension of the same type in a given extension block.
+  op scen9 : -> ScenarioAction .
+  eq scen9 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(hello-retry-request-v3, {extensions, add(v[supported-versions, *(1)])}) ->
+             assert(((N2 . SI) . errorLog) == v[handshake-failure])  -> close(N1 . CI, N2 . SI) .
+
+  op scen10 : -> ScenarioAction .
+  eq scen10 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(hello-retry-request-v3, {extensions, add(v[key-shares-groups, *(1)])}) ->
+              assert(((N2 . SI) . errorLog) == v[handshake-failure])  -> close(N1 . CI, N2 . SI) .
+
+  --- Upon receipt of a HelloRetryRequest, the client MUST check the
+  --- legacy_version, legacy_session_id_echo, cipher_suite, and legacy_compression_method as specified in Section 4.1.3.
+  op scen11 : -> ScenarioAction .
+  eq scen11 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(hello-retry-request-v3, {cipher-suites, replace(*(1), *(1))}) ->
+              assert(((N2 . SI) . errorLog) == v[handshake-failure])  -> close(N1 . CI, N2 . SI) .
+
+  op scen12 : -> ScenarioAction .
+  eq scen12 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(hello-retry-request-v3, {version, replace(*(1), *(1))}) ->
+              assert(((N2 . SI) . errorLog) == v[handshake-failure])  -> close(N1 . CI, N2 . SI) .
+
+  op scen13 : -> ScenarioAction .
+  eq scen13 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(hello-retry-request-v3, {compression-methods, replace(*(1), *(1))}) ->
+              assert(((N2 . SI) . errorLog) == v[handshake-failure])  -> close(N1 . CI, N2 . SI) .
+
+  op scen14 : -> ScenarioAction .
+  eq scen14 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(hello-retry-request-v3, {supported-versions, replace(*(1), *(1))}) ->
+              assert(((N2 . SI) . errorLog) == v[protocol-version])  -> close(N1 . CI, N2 . SI) .
+
+  op scen15 : -> ScenarioAction .
+  eq scen15 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(hello-retry-request-v3, {key-shares-groups, replace(*(1), *(1))}) ->
+              assert(((N2 . SI) . errorLog) == v[illegal-parameter])  -> close(N1 . CI, N2 . SI) .
+
+  --- invalid length check			  
+  op scen16 : -> ScenarioAction .
+  eq scen16 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(hello-retry-request-v3, {handshake-len, replace(*(1), *(1))}) -> 
+              assert(((N2 . SI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  op scen17 : -> ScenarioAction .
+  eq scen17 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(hello-retry-request-v3, {sessionId-len, replace(*(1), *(1))}) -> 
+              assert(((N2 . SI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  op scen18 : -> ScenarioAction .
+  eq scen18 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(hello-retry-request-v3, {extension-len, replace(*(1), *(1))}) -> 
+              assert(((N2 . SI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  op scen19 : -> ScenarioAction .
+  eq scen19 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(hello-retry-request-v3, {key-shares-len, replace(*(1), *(1))}) -> 
+              assert(((N2 . SI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  op scen20 : -> ScenarioAction .
+  eq scen20 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(hello-retry-request-v3, {supported-versions-len, replace(*(1), *(1))}) -> 
+              assert(((N2 . SI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .			  
+
+  ---------------------------
+  --- Second Client Hello ---
+  ---------------------------
+  op scen21 : -> ScenarioAction .
+  eq scen21 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {supported-groups, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[illegal-parameter]) -> close(N1 . CI, N2 . SI) .
+
+  op scen22 : -> ScenarioAction .
+  eq scen22 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {version, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[protocol-version])  -> close(N1 . CI, N2 . SI) .
+
+  op scen23 : -> ScenarioAction .
+  eq scen23 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {compression-methods, add(*(1))}) -> assert(((N1 . CI) . errorLog) == v[illegal-parameter])  -> close(N1 . CI, N2 . SI) .
+
+  op scen24 : -> ScenarioAction .
+  eq scen24 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {signature-algorithms, replace(*(1), v[{ecdsa,md5}])}) ->
+              assert(((N1 . CI) . errorLog) == v[illegal-parameter]) -> close(N1 . CI, N2 . SI)  .
+
+  op scen25 : -> ScenarioAction .
+  eq scen25 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {signature-algorithms, replace(*(1), v[{ecdsa,sha224}])}) ->
+              assert(((N1 . CI) . errorLog) == v[illegal-parameter]) -> close(N1 . CI, N2 . SI)  .
+
+  op scen26 : -> ScenarioAction .
+  eq scen26 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {signature-algorithms, replace(*(1), v[{dsa,md5}])}) ->
+              assert(((N1 . CI) . errorLog) == v[illegal-parameter]) -> close(N1 . CI, N2 . SI)  .
+
+  op scen27 : -> ScenarioAction .
+  eq scen27 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {signature-algorithms, replace(*(1), v[{dsa,sha224}])}) ->
+              assert(((N1 . CI) . errorLog) == v[illegal-parameter]) -> close(N1 . CI, N2 . SI)  .
+
+  op scen28 : -> ScenarioAction .
+  eq scen28 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {extensions, delete(v[signature-algorithms])}) ->
+              assert(((N1 . CI) . errorLog) == v[missing-extension])  -> close(N1 . CI, N2 . SI) .
+
+  op scen29 : -> ScenarioAction .
+  eq scen29 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {extensions, delete(v[supported-groups])}) ->
+              assert(((N1 . CI) . errorLog) == v[missing-extension])  -> close(N1 . CI, N2 . SI) .
+
+  op scen30 : -> ScenarioAction .
+  eq scen30 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {extensions, delete(v[key-shares])}) ->
+              assert(((N1 . CI) . errorLog) == v[missing-extension])  -> close(N1 . CI, N2 . SI) .
+
+  op scen31 : -> ScenarioAction .
+  eq scen31 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {extensions, delete(v[supported-versions])}) ->
+              assert(((N1 . CI) . errorLog) == v[protocol-version])  -> close(N1 . CI, N2 . SI) .
+
+  op scen32 : -> ScenarioAction .
+  eq scen32 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {extensions, add(v[signature-algorithms, *(1)])}) ->
+              assert(((N1 . CI) . errorLog) == v[handshake-failure])  -> close(N1 . CI, N2 . SI) .
+
+  op scen33 : -> ScenarioAction .
+  eq scen33 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {extensions, add(v[supported-groups, *(1)])}) ->
+              assert(((N1 . CI) . errorLog) == v[handshake-failure])  -> close(N1 . CI, N2 . SI) .
+
+  op scen34 : -> ScenarioAction .
+  eq scen34 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {extensions, add(v[supported-versions, *(1)])}) ->
+              assert(((N1 . CI) . errorLog) == v[handshake-failure])  -> close(N1 . CI, N2 . SI) .
+
+  op scen35 : -> ScenarioAction .
+  eq scen35 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {extensions, add(v[key-shares, *(1)])}) ->
+              assert(((N1 . CI) . errorLog) == v[handshake-failure])  -> close(N1 . CI, N2 . SI) .
+
+  op scen36 : -> ScenarioAction .
+  eq scen36 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {handshake-len, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  op scen37 : -> ScenarioAction .
+  eq scen37 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {sessionId-len, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  op scen38 : -> ScenarioAction .
+  eq scen38 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {cipherSuite-len, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  op scen39 : -> ScenarioAction .
+  eq scen39 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {extension-len, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  op scen40 : -> ScenarioAction .
+  eq scen40 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {key-shares-len, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  op scen41 : -> ScenarioAction .
+  eq scen41 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {supported-versions-len, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .			  
+
+  op scen42 : -> ScenarioAction .
+  eq scen42 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {handshake-type, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[unexpected-message]) -> close(N1 . CI, N2 . SI)  .			  
+
+  op scen43 : -> ScenarioAction .
+  eq scen43 = init(initConf tester(N1 . CI) target(N2 . SI)) -> connect(N1 . CI, N2 . SI) -> changeContent(second-client-hello-v3, {content-type, replace(*(1), *(1))}) -> 
+              assert(((N1 . CI) . errorLog) == v[unexpected-message]) -> close(N1 . CI, N2 . SI)  .			  
+
+
+  --------------------
+  --- Server Hello ---
+  --------------------
+  op scen44 : -> ScenarioAction .
+  eq scen44 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {extensions, add(v[signature-algorithms, *(1)])}) ->
+              assert(((N2 . SI) . errorLog) == v[illegal-parameter])  -> close(N1 . CI, N2 . SI) .
+
+  op scen45 : -> ScenarioAction .
+  eq scen45 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {extensions, add(v[supported-groups, *(1)])}) ->
+              assert(((N2 . SI) . errorLog) == v[illegal-parameter])  -> close(N1 . CI, N2 . SI) .
+
+  op scen46 : -> ScenarioAction .
+  eq scen46 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {extensions, add(v[psk-key-exchange-modes, *(1)])}) ->
+              assert(((N2 . SI) . errorLog) == v[illegal-parameter])  -> close(N1 . CI, N2 . SI) .
+
+  op scen47 : -> ScenarioAction .
+  eq scen47 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {extensions, add(v[early-data])}) ->
+              assert(((N2 . SI) . errorLog) == v[illegal-parameter])  -> close(N1 . CI, N2 . SI) .
+
+  op scen48 : -> ScenarioAction .
+  eq scen48 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {extensions, add(v[selected-identifier, 0])}) ->
+              assert(((N2 . SI) . errorLog) == v[unsupported-extension])  -> close(N1 . CI, N2 . SI) .
+
+  op scen49 : -> ScenarioAction .
+  eq scen49 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {extensions, add(v[post-handshake])}) ->
+              assert(((N2 . SI) . errorLog) == v[illegal-parameter])  -> close(N1 . CI, N2 . SI) .
+
+  --- The server's extension MUST contain "supported_version" and "key_share" extensions.
+  op scen50 : -> ScenarioAction .
+  eq scen50 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {extensions, delete(v[supported-versions])}) ->
+              assert(((N2 . SI) . errorLog) == v[protocol-version])  -> close(N1 . CI, N2 . SI) .
+
+  op scen51 : -> ScenarioAction .
+  eq scen51 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {extensions, delete(v[key-shares])}) ->
+              assert(((N2 . SI) . errorLog) == v[handshake-failure])  -> close(N1 . CI, N2 . SI) .
+
+  --- There MUST NOT be more than one extension of the same type in a given extension block.
+  op scen52 : -> ScenarioAction .
+  eq scen52 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {extensions, add(v[supported-versions, *(1)])}) ->
+             assert(((N2 . SI) . errorLog) == v[handshake-failure])  -> close(N1 . CI, N2 . SI) .
+
+  op scen53 : -> ScenarioAction .
+  eq scen53 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {extensions, add(v[key-shares, *(1)])}) ->
+              assert(((N2 . SI) . errorLog) == v[handshake-failure])  -> close(N1 . CI, N2 . SI) .
+
+  --- Upon receipt of a HelloRetryRequest, the client MUST check the
+  --- legacy_version, legacy_session_id_echo, cipher_suite, and legacy_compression_method as specified in Section 4.1.3.
+  op scen54 : -> ScenarioAction .
+  eq scen54 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {cipher-suites, replace(*(1), *(1))}) ->
+              assert(((N2 . SI) . errorLog) == v[illegal-parameter])  -> close(N1 . CI, N2 . SI) .
+
+  op scen55 : -> ScenarioAction .
+  eq scen55 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {version, replace(*(1), *(1))}) ->
+              assert(((N2 . SI) . errorLog) == v[protocol-version])  -> close(N1 . CI, N2 . SI) .
+
+  op scen56 : -> ScenarioAction .
+  eq scen56 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {compression-methods, replace(*(1), *(1))}) ->
+              assert(((N2 . SI) . errorLog) == v[illegal-parameter])  -> close(N1 . CI, N2 . SI) .
+
+  op scen57 : -> ScenarioAction .
+  eq scen57 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {supported-versions, replace(*(1), *(1))}) ->
+              assert(((N2 . SI) . errorLog) == v[illegal-parameter])  -> close(N1 . CI, N2 . SI) .
+
+  --- invalid length check			  
+  op scen58 : -> ScenarioAction .
+  eq scen58 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {handshake-len, replace(*(1), *(1))}) -> 
+              assert(((N2 . SI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  op scen59 : -> ScenarioAction .
+  eq scen59 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {sessionId-len, replace(*(1), *(1))}) -> 
+              assert(((N2 . SI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  op scen60 : -> ScenarioAction .
+  eq scen60 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {extension-len, replace(*(1), *(1))}) -> 
+              assert(((N2 . SI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  op scen61 : -> ScenarioAction .
+  eq scen61 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {key-shares-len, replace(*(1), *(1))}) -> 
+              assert(((N2 . SI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .
+
+  op scen62 : -> ScenarioAction .
+  eq scen62 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {supported-versions-len, replace(*(1), *(1))}) -> 
+              assert(((N2 . SI) . errorLog) == v[decode-error]) -> close(N1 . CI, N2 . SI)  .			  
+
+  op scen63 : -> ScenarioAction .
+  eq scen63 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {handshake-type, replace(*(1), *(1))}) -> 
+              assert(((N2 . SI) . errorLog) == v[unexpected-message]) -> close(N1 . CI, N2 . SI)  .
+
+  op scen64 : -> ScenarioAction .
+  eq scen64 = init(initConf tester(N2 . SI) target(N1 . CI)) -> connect(N1 . CI, N2 . SI) -> changeContent(server-hello-v3, {content-type, replace(*(1), *(1))}) -> 
+              assert(((N2 . SI) . errorLog) == v[unexpected-message]) -> close(N1 . CI, N2 . SI)  .			  
+endsm

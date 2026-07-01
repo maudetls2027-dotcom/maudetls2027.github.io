@@ -1,0 +1,24 @@
+smod TLS-NORMAL-BEHAVIOR-STRATEGY-V3 is
+  protecting TLS-NORMAL-BEHAVIOR-STRATEGY .
+  protecting CONNECT-V3-API .
+  protecting ACCEPT-V3-API .
+
+  strat buildMsg3 @ ConfWithAction .
+  sd buildMsg3 := buildClientHelloV3 | buildSecondClientHelloV3
+               | buildHelloRetryRequestV3 | buildEarlyDataV3
+               | buildServerHelloV3 | buildEncryptedExtensionV3 | buildCertificateRequestV3 | buildServerCertificateV3 | buildServerCertificateVerifyV3 | buildServerFinishedV3
+               | buildEndOfEarlyDataV3 | buildClientCertificateV3 | buildClientCertificateVerifyV3 | buildClientFinishedV3
+               | buildNewSessionTicketV3 | buildPostClientAuthenticationV3 | buildServerKeyUpdateRequestV3 | buildClientKeyUpdateRequestV3 .
+
+  strat processMsg3 @ ConfWithAction .
+  sd processMsg3 := processClientHelloV3      | processEarlyDataV3                | discardEarlyDataV3
+                 | processEndOfEarlyDataV3    | processHelloRetryRequestV3
+                 | processServerHelloV3       |  processEncryptedExtensionV3      |  processCertificateRequestV3
+                 | processServerCertificateV3 |  processServerCertificateVerifyV3 | processServerFinishedV3 
+                 | processClientCertificateV3 |  processClientCertificateVerifyV3 | processClientFinishedV3 
+                 | processNewSessionTicketV3  | processClientKeyUpdateRequestV3   | processServerKeyUpdateRequestV3 
+                 | processAlertV3             | processPostClientAuthenticationV3 | errorClientMessageV3 
+                 | errorServerMessageV3 .
+
+  sd normalBehavior := buildMsg3 or-else processMsg3 .
+endsm

@@ -1,0 +1,256 @@
+fmod FORMAL-ACTION is
+  protecting TLS-MESSAGE-CONTENT .
+  protecting TLS-COMPONENT-ID .
+  protecting CERTIFICATE .
+
+  sort FormalAction .
+  --- Initial configuration
+  ops connectF acceptF closeF : TId -> FormalAction [ctor] .
+  op genCertificatePrivateKey : Key -> FormalAction [ctor] .
+  op setUpPSK : TId Nonce -> FormalAction [ctor] .
+
+  --- Network communication 
+  --- sends to TId, receives from TId
+  ops send recv : TId MsgContent -> FormalAction [ctor] .
+
+  --- Network communicatio (for visualizer)
+  op send : TId TId MsgContent -> FormalAction [ctor] .
+
+  --- TLS 1.2 operation
+  ops buildClientHelloV2             buildServerHelloV2        buildServerCertificateV2       
+      buildServerKeyExchangeV2       buildCertificateRequestV2 buildServerHelloDoneV2
+      buildClientKeyExchangeV2       buildClientCertificateV2  buildClientCertificateVerifyV2  
+      buildClientChangeCipherSpecV2  buildServerChangeCipherSpecV2 
+      buildClientFinishedV2          buildServerFinishedV2 : MsgContent MsgContent TId -> FormalAction [ctor] .
+
+  ops processClientHelloV2        processServerHelloV2        processServerCertificateV2 
+      processServerKeyExchangeV2  processCertificateRequestV2 processServerHelloDoneV2   
+      processClientKeyExchangeV2  processClientCertificateV2  processCertificateVerifyV2  
+      processClientChangeCipherSpecV2   processServerChangeCipherSpecV2   processClientFinishedV2     
+	  processServerFinishedV2     processAlertV2              : MsgContent TId -> FormalAction [ctor] .
+
+  ops errorServerHelloV2       errorServerCertificateV2       errorServerKeyExchangeV2
+      errorServerFinishedV2    errorClientCertificateV2       errorClientHelloV2
+      errorUnexpectedMessageV2 errorCertificateVerifyV2       errorClientFinishedV2 
+      errorClientKeyExchangeV2 errorClientChangeCipherSpecV2  errorServerChangeCipherSpecV2 
+      errorServerHelloDoneV2   errorCertificateRequestV2 
+      : MsgContent MsgContent MsgContent TId -> FormalAction [ctor] .
+  
+  --- TLS 1.3 operation
+  ops buildClientHelloV3       buildServerHelloV3 buildHelloRetryRequestV3 
+      buildClientEarlyAppV3 : MsgContent TId -> FormalAction [ctor] .
+
+  ops buildEncryptedExtensionV3     buildClientCertificateV3 buildClientCertificateVerifyV3 
+      buildCertificateRequestV3     buildServerCertificateVerifyV3 buildServerCertificateV3 
+      buildServerFinishedV3         buildClientFinishedV3 buildPostClientAuthenticationV3 
+	  buildClientKeyUpdateRequestV3 buildClientKeyUpdateResponseV3 buildServerKeyUpdateRequestV3 buildServerKeyUpdateResponseV3
+      buildEarlyDataV3 buildEndOfEarlyDataV3 : MsgContent MsgContent TId -> FormalAction [ctor] .
+  op  buildNewSessionTicketV3 : MsgContent MsgContent Nonce TId -> FormalAction [ctor] .
+  op  skipClientEarlyAppV3 : TId -> FormalAction [ctor] .
+
+  ops processClientHelloV3        processServerHelloV3       processEncryptedExtensionV3      
+      processCertificateRequestV3 processServerCertificateV3 processServerCertificateVerifyV3 
+      processServerFinishedV3     processClientCertificateV3 processClientCertificateVerifyV3 
+      processClientFinishedV3     processAlertV3             processHelloRetryRequestV3 
+      processEarlyAppV3           processPostClientAuthenticationV3 
+	  processServerKeyUpdateRequestV3 processServerKeyUpdateResponseV3 processClientKeyUpdateRequestV3 processClientKeyUpdateResponseV3
+      processEarlyDataV3 processEndOfEarlyDataV3 discardEarlyDataV3 : MsgContent TId -> FormalAction [ctor] .
+  op  processNewSessionTicketV3 : MsgContent Nonce TId -> FormalAction [ctor] .  
+
+  ops errorHelloRetryRequestV3        errorClientHelloV3        errorServerHelloV3 
+      errorServerCertificateV3        errorEncryptedExtensionV3 errorCertificateRequestV3 
+      errorServerCertificateVerifyV3  errorClientCertificateV3  errorClientCertificateVerifyV3 
+	  errorClientFinishedV3           errorServerFinishedV3     errorPostClientAuthenticationV3 
+      errorServerKeyUpdateRequestV3   errorClientKeyUpdateRequestV3 errorEndOfEarlyDataV3
+	  : MsgContent MsgContent MsgContent TId -> FormalAction [ctor] .
+
+  op errorServerHelloV3-2 : MsgContent Nonce? MsgContent TId -> FormalAction [ctor] .
+
+  --- Modified behavior
+  ops buildMClientHelloV2             buildMServerHelloV2        buildMServerCertificateV2       
+      buildMServerKeyExchangeV2       buildMCertificateRequestV2 buildMServerHelloDoneV2
+      buildMClientKeyExchangeV2       buildMClientCertificateV2  buildMClientCertificateVerifyV2  
+      buildMClientChangeCipherSpecV2  buildMServerChangeCipherSpecV2 buildMClientFinishedV2 buildMServerFinishedV2 : MsgContent MsgContent TId -> FormalAction [ctor] .
+
+  ops buildMClientHelloV3 buildMHelloRetryRequestV3 buildMServerHelloV3 : MsgContent TId -> FormalAction [ctor] .
+  ops buildMEncryptedExtensionV3 buildMCertificateRequestV3 buildMServerCertificateV3 buildMServerCertificateVerifyV3 buildMServerFinishedV3 
+      buildMClientCertificateV3 buildMClientCertificateVerifyV3 buildMClientFinishedV3 : MsgContent MsgContent TId -> FormalAction [ctor] .
+
+  op skipF : FormalAction -> FormalAction [ctor] .
+  op buildEmptyCertificate : -> FormalAction [ctor] .
+  op buildInvalidPaddingRSAClientKeyExchange : MsgContent PreMasterSecret TId -> FormalAction [ctor] .
+  op buildModifiedCertificateVerifyV3 : MsgContent TId -> FormalAction [ctor] .
+
+  op errorDecryptFailed : MsgContent MsgContent TId -> FormalAction [ctor] .
+
+  --- Initialize operation
+  op initializePV : TId ProtocolVersion -> FormalAction [ctor] .
+  op initializeCS : TId List{CipherSuite} -> FormalAction [ctor] .
+  op initializeCM : TId List{CompressionMethod} -> FormalAction [ctor] .
+  op initializeNC : TId List{NamedGroup} -> FormalAction [ctor] .
+  op initializeNG : TId List{NamedGroup} -> FormalAction [ctor] .
+  op initializeSV : TId List{ProtocolVersion} -> FormalAction [ctor] .
+  op initializeSA : TId List{SignatureAlgorithm} -> FormalAction [ctor] .
+  op initializeEM : TId List{PreSharedKeyExchangeMode} -> FormalAction [ctor] .
+  op initializeKS : TId List{NamedGroup} -> FormalAction [ctor] .
+  op initializeNST : TId Bool -> FormalAction [ctor] .
+  op initializeCR : TId Bool -> FormalAction [ctor] .
+  op initializeED : TId Bool -> FormalAction [ctor] .
+  op initializePCA : TId Bool -> FormalAction [ctor] .
+  op initializeKU : TId Bool -> FormalAction [ctor] .
+
+  --- Attacker operation
+  op check : TId AlertDescription -> FormalAction [ctor] .
+  ops encryptOrPlain decrypt : MsgContent MsgContent TId -> FormalAction [ctor] .
+  ops updateReceiveHash updateSendHash : TId MsgContent -> FormalAction [ctor] .
+  ops buildClientHelloA buildServerHelloA       buildEncryptedExtensionA 
+      buildCertificateA buildClientKeyExchangeA buildServerKeyExchangeA 
+      buildAlertA       buildChangeCipherSpecA  buildCertificateRequestA : MsgContent TId -> FormalAction [ctor] .
+  ops buildCertificateVerifyA2 buildCertificateVerifyA3 buildFinishedA : MsgContent TId -> FormalAction [ctor] .
+  ops addSessionId addServerRandom addClientRandom : Nonce -> FormalAction [ctor] .
+  op  addPreMasterSecret : ProtocolVersion Nonce PreMasterSecret -> FormalAction [ctor] .
+  ops learnClientRandom learnServerRandom : MsgContent Nonce -> FormalAction [ctor] .
+  op learnCipherSuite : MsgContent List{CipherSuite} -> FormalAction [ctor] .
+  op learnCompressionMethod : MsgContent List{CompressionMethod} -> FormalAction [ctor] .
+  op learnKeySharesExtension : MsgContent List{KeyShareEntry} -> FormalAction [ctor] .
+  op learnPublicKey : MsgContent Key -> FormalAction [ctor] .
+  op learnRSAPreMasterSecret : MsgContent Key PreMasterSecret TId -> FormalAction [ctor] .
+  op learnTicket : TId Nonce MsgContent -> FormalAction [ctor] .
+  op learnCertificateContext : TId Nonce? -> FormalAction [ctor] .
+ 
+  op addSameExtension : MsgContent ExtensionItem -> FormalAction [ctor] . 
+  op addCompressionMethod : MsgContent CompressionMethod -> FormalAction [ctor] .
+  op removeNullCompression : MsgContent MsgContent -> FormalAction [ctor] .
+
+  op changeProtocolVersion : MsgContent MsgContent ProtocolVersion -> FormalAction [ctor] .
+  op changeCipherSuite : MsgContent MsgContent List{CipherSuite} -> FormalAction [ctor] .
+  op changeRandom : MsgContent MsgContent Nonce -> FormalAction [ctor] .
+  op changeSessionId : MsgContent MsgContent Nonce? -> FormalAction [ctor] .
+  op changeCompressionMethod : MsgContent MsgContent List{CompressionMethod} -> FormalAction [ctor] .
+  op changeSupportedSignatureAlgorithms : MsgContent MsgContent List{SignatureAlgorithm} -> FormalAction [ctor] .
+
+  op changeRecordType : MsgContent MsgContent ContentType -> FormalAction [ctor] .
+  op changeHandshakeType : MsgContent MsgContent HandshakeType -> FormalAction [ctor] .
+  op changeCertificateList : MsgContent MsgContent List{Certificate} -> FormalAction [ctor] .
+  op changeCertificateSignature : MsgContent MsgContent -> FormalAction [ctor] .
+  op changeRSAPreMasterSecret : MsgContent MsgContent PreMasterSecret Key TId -> FormalAction [ctor] .
+  op changeRSAPadding : MsgContent MsgContent -> FormalAction [ctor] .
+  op changeVerifyData : MsgContent MsgContent TId -> FormalAction [ctor] .
+  op changeRecordLen : MsgContent MsgContent -> FormalAction [ctor] .
+  op changeHandshakeLen : MsgContent MsgContent -> FormalAction [ctor] .
+  op changeCipherSuitesLen : MsgContent MsgContent -> FormalAction [ctor] .
+  op changeSessionIdLen : MsgContent MsgContent -> FormalAction [ctor] .
+  op changeCompressionLen : MsgContent MsgContent -> FormalAction [ctor] .
+  op changeCertificateLen : MsgContent MsgContent -> FormalAction [ctor] .
+  op changeCertificateTypeLen : MsgContent MsgContent -> FormalAction [ctor] .
+  op changeCertificateAlgoLen : MsgContent MsgContent -> FormalAction [ctor] .
+  op changeCertificateAuthLen : MsgContent MsgContent -> FormalAction [ctor] .
+  op changeExtensionLen : MsgContent MsgContent -> FormalAction [ctor] .
+  op changeCertificateRequestContextLen : MsgContent MsgContent -> FormalAction [ctor] .
+
+  --- unclassified
+  op closedConnectionF : TId -> FormalAction [ctor] .
+endfm
+
+fmod INTERNAL-FORMAL-ACTION is
+  protecting FORMAL-ACTION .
+
+  --- Internal operation 
+  op processMessage : TId MsgContent -> FormalAction [ctor] .
+  op learnMessage : TId MsgContent MsgContent -> FormalAction [ctor] .
+
+  op buildClientHelloBody : TId MsgContent -> FormalAction [ctor] .
+  op buildServerHelloBody : TId MsgContent -> FormalAction [ctor] .
+  op buildEncryptedExtensionBody : TId MsgContent -> FormalAction [ctor] .
+  op buildCertificateBody : TId MsgContent -> FormalAction [ctor] .
+  op buildCertificateRequestBodyV2 : TId MsgContent -> FormalAction [ctor] .
+  op buildCertificateRequestBodyV3 : TId MsgContent -> FormalAction [ctor] .
+  op buildServerHelloDoneBody : TId MsgContent -> FormalAction [ctor] .
+  op buildEndOfEarlyDataBody : TId MsgContent -> FormalAction [ctor] .
+  op buildServerKeyExchangeBody : TId MsgContent -> FormalAction [ctor] .
+  op buildClientKeyExchangeBody : TId MsgContent -> FormalAction [ctor] .
+  op buildCertificateVerifyBody : TId MsgContent -> FormalAction [ctor] .
+  op buildFinishedBody : TId MsgContent -> FormalAction [ctor] .
+  op buildFinishedBody : TId MsgContent Nonce? -> FormalAction [ctor] .
+  op buildChangeCipherSpecBody : TId MsgContent -> FormalAction [ctor] .
+  op buildNewSessionTicketBody : TId MsgContent -> FormalAction [ctor] .
+  op buildKeyUpdateRequestBody : TId MsgContent -> FormalAction [ctor] .
+  op buildAlert : TId MsgContent -> FormalAction [ctor] .
+
+  op buildKeyShareEntry : NamedGroup Nonce -> FormalAction [ctor] .
+  op buildKeyShareEntry : MsgContent -> FormalAction [ctor] .
+  op buildInvalidPaddingRSAClientKeyExchangeBody : MsgContent -> FormalAction [ctor] .
+  op buildRandom : MsgContent -> FormalAction [ctor] .
+  op buildSessionId : MsgContent -> FormalAction [ctor] .
+  op buildRecord : TId MsgContent -> FormalAction [ctor] .
+  op buildMessage : MsgContent -> FormalAction [ctor] .
+  op buildTicket : MsgContent -> FormalAction [ctor] .
+  op buildPSK : TId MsgContent Nonce -> FormalAction [ctor] .
+
+  op addExtension : TId Extension MsgContent -> FormalAction [ctor] .
+  op addExtensionLen : TId MsgSize MsgContent -> FormalAction [ctor] .
+  op addHandshakeLen : TId MsgSize MsgContent -> FormalAction [ctor] .
+  op addKeyShareExtension : NamedGroup Nonce MsgContent -> FormalAction [ctor] .
+
+  op getCertificate : MsgContent -> FormalAction [ctor] .
+
+  op learnPublicKey : MsgContent -> FormalAction [ctor] .
+
+  op updateHash : TId MsgContent Bool -> FormalAction [ctor] .
+   
+  op updateContext : TId MsgContent Bool -> FormalAction [ctor] .
+endfm
+
+view FormalAction from TRIV to FORMAL-ACTION is
+  sort Elt to FormalAction .
+endv
+
+mod CONFIGURATION-WITH-ACTION is
+  protecting FORMAL-ACTION .
+  protecting INTERNAL-FORMAL-ACTION .
+  protecting LIST{TId} .
+  protecting SET{TId} .
+  protecting LIST{FormalAction} .
+  protecting META-CONDITION .
+  protecting CONFIGURATION .
+
+  --- Configuration | ComponentIds : Set{FormalAction}
+  --- ComponentIds means ids of the components related to the formal actions.
+  --- This is because we need to extract formal actions with some components only.
+  sort ConfWithAction .
+  op {_|_:_} : Configuration List{TId} List{FormalAction} -> ConfWithAction .
+
+  var TIS : Set{TId} .
+  var CONF : Configuration .
+  var TI : TId .
+  var ACT : FormalAction .
+  var ACTL : List{FormalAction} .
+  var OIDL : List{TId} .
+
+  op actions : Set{TId} ConfWithAction -> List{FormalAction} .
+  eq actions(TIS, {CONF | TI OIDL : ACT ACTL})
+   = (if (TI in TIS) then ACT else nil fi) actions(TIS, {CONF | OIDL : ACTL}) .
+
+  eq actions(TIS, {CONF | nil : nil}) = nil .
+
+  op ids : ConfWithAction -> List{TId} .
+  eq ids({CONF | OIDL : ACTL}) = OIDL .
+endm
+
+omod OBJECT-WITH-ACTION is
+  protecting CONFIGURATION-WITH-ACTION .
+  protecting TLS-OBJECT .
+
+  sort ExtObject .
+  subsort Object < ExtObject < Configuration .
+  op {_,_} : Object FormalAction -> ExtObject .
+
+  var TI : TId .
+  var ACT : FormalAction .
+  var CONF : Configuration .
+  var OIDL : List{TId} .
+  var ACTL : List{FormalAction} .
+
+  eq [append-formal-action]:
+   {{< TI : TLS | >, ACT} CONF | OIDL : ACTL} = {< TI : TLS | > CONF | OIDL TI : ACTL ACT} .
+endom

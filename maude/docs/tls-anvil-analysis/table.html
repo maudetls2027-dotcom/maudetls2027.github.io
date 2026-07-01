@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>table.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> or <div class="page"></div> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="tls-anvil-bug-expressiveness-table">TLS-Anvil Bug Expressiveness Table</h1>
+<p><code>results.zip</code>에서 확인한 TLS-Anvil 실패 항목을 현재 behavior deviation specification 및 scenario property 기준으로 분류한 표이다.</p>
+<blockquote>
+<p><code>wolfSSL server debug-x</code> 항목은 아카이브 안에 정확한 wolfSSL 버전이 인코딩되어 있지 않았다.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>분류</th>
+<th>발생 라이브러리/버전</th>
+<th>대표 TLS-Anvil 테스트</th>
+<th>표현성</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>malformed handshake/extension length fields</td>
+<td>MatrixSSL 4.3.0 client</td>
+<td><code>certificateMessageLengthTLS12</code>, <code>helloExtensionsLengthTLS12</code>, <code>helloLengthTLS12</code>, <code>serverKeyExchangeLength</code></td>
+<td>가능. 현재 <code>MsgSize</code>의 symbolic invalid length(<code>smaller</code>, <code>larger</code>, <code>maxSize</code>, <code>minSize</code>)로 표현 가능. 정확한 바이트 길이(<code>-1</code> 등)는 불가.</td>
+</tr>
+<tr>
+<td>RFC6066 max_fragment_length negotiation/enforcement</td>
+<td>BearSSL 0.6 server; Mbed TLS 2.25.0 server</td>
+<td><code>respectsNegotiatedMaxFragmentLength</code></td>
+<td>현재 불가. <code>max_fragment_length</code> extension, record fragment size bound, negotiated extension state를 추가하면 중간 규모 패치로 가능.</td>
+</tr>
+<tr>
+<td>RFC6066 unrequested CertificateStatus/status_request</td>
+<td>BearSSL 0.6 server; Mbed TLS 2.25.0 server</td>
+<td><code>doesNotSendUnrequestedCertificateStatus</code></td>
+<td>현재 불가. <code>status_request</code> extension과 <code>certificate_status</code> handshake message를 추가하면 중간 규모 패치로 가능.</td>
+</tr>
+<tr>
+<td>TLS 1.2 close_notify / socket close behavior</td>
+<td>GnuTLS 3.7.0 client; s2n 0.10.24 client</td>
+<td><code>closeNotify</code></td>
+<td>현재 불가. TLS alert state와 TCP/socket close observation이 모델 밖에 있음. close state를 추가하면 일부 가능하지만 실제 socket close는 구조적 확장 필요.</td>
+</tr>
+<tr>
+<td>TLS 1.2 client rejects invalid ServerHello choices/extensions</td>
+<td>GnuTLS 3.7.0 client; MatrixSSL 4.3.0 client; s2n 0.10.24 client</td>
+<td><code>selectUnproposedCompressionMethod</code>, <code>sendAdditionalExtension</code></td>
+<td>부분 가능. 제안되지 않은 compression/cipher/extension 선택은 메시지 필드 및 extension set 변조로 가능. 미지원 extension의 정확한 종류는 현재 extension vocabulary에 의존.</td>
+</tr>
+<tr>
+<td>TLS 1.2 client ServerKeyExchange validation</td>
+<td>s2n 0.10.24 client</td>
+<td><code>acceptsAnonSignatureForNonAnonymousCipherSuite</code>, <code>acceptsMissingSignature</code>, <code>acceptsUnproposedNamedGroup</code>, <code>acceptsUnproposedSignatureAndHash</code>, <code>invalidServerKeyExchangeSignature</code></td>
+<td>대체로 가능. signature/hash/group 변조와 <code>noCheck</code> 계열로 표현 가능. 단, missing signature 자체는 작은 syntax/semantics 패치가 있으면 더 직접적으로 표현 가능.</td>
+</tr>
+<tr>
+<td>client Certificate message required after CertificateRequest</td>
+<td>MatrixSSL 4.3.0 client</td>
+<td><code>clientMustSendCertMsg</code></td>
+<td>가능. <code>skip(#certificate)</code> 또는 state/sequence property로 CertificateRequest 이후 Certificate 생략을 표현 가능.</td>
+</tr>
+<tr>
+<td>undefined TLS record content types</td>
+<td>MatrixSSL 4.3.0 client; MatrixSSL 4.3.0 server; s2n 0.10.24 client; wolfSSL 4.5.0 server</td>
+<td><code>sendNotDefinedRecordTypesWithCCSAndFinished</code>, <code>sendNotDefinedRecordTypesWithServerHello</code></td>
+<td>부분 가능. 현재 content type sort가 유한해서 진짜 unknown type은 불가. <code>ContentType</code>에 unknown/invalid 값을 추가하면 작은 패치로 가능.</td>
+</tr>
+<tr>
+<td>record crypto / CCS / Finished workflow</td>
+<td>MatrixSSL 4.3.0 client; MatrixSSL 4.3.0 server</td>
+<td><code>ccsContentTest</code>, <code>checkReceivedMac</code>, <code>happyFlow</code>, <code>invalidAuthTag</code>, <code>verifyFinishedMessageCorrect</code></td>
+<td>혼합. Finished 검증 누락/순서 오류는 가능. AEAD tag, CBC MAC, CCS payload byte 수준 검사는 현재 추상화 밖이라 불가.</td>
+</tr>
+<tr>
+<td>empty/zero-length records and fragmentation</td>
+<td>MatrixSSL 4.3.0 client; MatrixSSL 4.3.0 server</td>
+<td><code>sendEmptyApplicationRecord</code>, <code>sendEmptyFinishedRecord</code>, <code>sendZeroLengthApplicationRecord</code></td>
+<td>현재 불가. record fragmentation, empty fragment, encrypted inner plaintext length가 모델 밖에 있음. record-fragment layer를 추가해야 함.</td>
+</tr>
+<tr>
+<td>TLS 1.2 version compatibility</td>
+<td>MatrixSSL 4.3.0 server; wolfSSL 4.5.0 server</td>
+<td><code>acceptAnyRecordVersionNumber</code>, <code>versionGreaterThanSupportedByServer</code></td>
+<td>부분 가능. TLS-1.0~1.3 범위의 version mismatch는 가능. SSL3 또는 임의 record version은 <code>ProtocolVersion</code> 확장이 필요.</td>
+</tr>
+<tr>
+<td>TLS 1.2 resumption/SNI/fatal-alert session state</td>
+<td>LibreSSL 3.2.3 server; MatrixSSL 4.3.0 server; wolfSSL 4.5.0 server; wolfSSL server debug-x</td>
+<td><code>rejectResumptionAfterFatalPostHandshake</code>, <code>rejectSniDisparityResumption</code>, <code>serverHelloSniInResumption</code></td>
+<td>부분 가능. resumption/fatal-alert 상태 전이는 일부 가능. SNI는 현재 extension vocabulary에 없어서 작은-중간 패치 필요.</td>
+</tr>
+<tr>
+<td>TLS 1.2 RSA premaster malformed input</td>
+<td>MatrixSSL 4.3.0 server</td>
+<td><code>PMWithWrongClientVersion</code>, <code>PMWithWrongPKCS1Padding</code></td>
+<td>부분 가능. premaster version mismatch는 가능. PKCS#1 padding 바이트 구조는 crypto/parser 추상화 밖이라 현재 불가.</td>
+</tr>
+<tr>
+<td>post-handshake second ChangeCipherSpec state-machine</td>
+<td>LibreSSL 3.2.3 server</td>
+<td><code>secondChangeCipherSpecAfterHandshake</code></td>
+<td>현재는 제한적. CCS 메시지 자체는 있으나 post-handshake second CCS acceptance를 직접 관찰하려면 handshake-complete state와 CCS acceptance/error property 보강이 필요. 작은-중간 패치로 가능.</td>
+</tr>
+<tr>
+<td>TLS 1.2 server ClientHello variation handling</td>
+<td>MatrixSSL 4.3.0 server; wolfSSL 4.5.0 server; wolfSSL server debug-x</td>
+<td><code>includeUnknownExtension</code>, <code>leaveOutExtensions</code>, <code>offerManyCipherSuites</code>, <code>unknownCipherSuite</code>, <code>unknownCompressionMethod</code></td>
+<td>부분 가능. extension 추가/삭제, cipher suite list 변형은 가능. unknown cipher/compression은 vocabulary 확장이 필요.</td>
+</tr>
+<tr>
+<td>TLS 1.2 server ServerHello structure/random checks</td>
+<td>MatrixSSL 4.3.0 server; wolfSSL 4.5.0 server</td>
+<td><code>checkExtensions</code>, <code>serverRandom</code></td>
+<td>부분 가능. extension 구조/선택 오류는 가능. server random의 concrete entropy/byte pattern 검사는 현재 불가.</td>
+</tr>
+<tr>
+<td>TLS 1.2 server signature/SKE handling</td>
+<td>LibreSSL 3.2.3 server; MatrixSSL 4.3.0 server; wolfSSL 4.5.0 server; wolfSSL server debug-x</td>
+<td><code>includeUnknownSignatureAndHashAlgorithm</code>, <code>offerManyAlgorithms</code>, <code>signatureIsValid</code></td>
+<td>가능/부분 가능. signature algorithm list 및 signature validation deviation은 가능. unknown signature/hash 값은 vocabulary 확장이 필요.</td>
+</tr>
+<tr>
+<td>RFC8422 point-format/chosen-curve behavior</td>
+<td>MatrixSSL 4.3.0 server; wolfSSL server debug-x</td>
+<td><code>deprecatedFormat</code>, <code>invalidPointFormat</code>, <code>respectChosenCurve</code>, <code>respectChosenCurveWithoutFormats</code>, <code>serverAdvertisesOnlyUncompressedPointFormat</code></td>
+<td>부분 가능. chosen group/curve mismatch는 일부 가능. <code>ec_point_formats</code> extension과 point-format values가 없어서 point-format 계열은 작은-중간 패치 필요.</td>
+</tr>
+<tr>
+<td>RFC8422 supported-group/invalid-curve behavior</td>
+<td>MatrixSSL 4.3.0 server; wolfSSL server debug-x</td>
+<td><code>addUnknownEllipticCurve</code>, <code>invalidEllipticCurve_WithNonECCCiphersuite</code>, <code>manyGroupsOffered</code>, <code>rejectsInvalidCurvePoints</code>, <code>supportsDeprecated</code></td>
+<td>부분 가능. supported groups list 조작은 가능. invalid curve point validation은 elliptic-curve point arithmetic/encoding이 모델 밖이라 현재 불가.</td>
+</tr>
+<tr>
+<td>TLS 1.3 rustls RFC8446 failures</td>
+<td>rustls 0.19.0 server</td>
+<td><code>invalidLegacyVersion_ssl30</code>, <code>sendPskExtensionWithoutPskKeyExchangeModes</code>, <code>signatureIsValid</code>, <code>zeroLengthRecord_Finished</code></td>
+<td>혼합. PSK/key_exchange_modes와 signature validation은 가능. SSL3 legacy version은 vocabulary 확장 필요. zero-length encrypted Finished record는 record-fragment layer가 없어 불가.</td>
+</tr>
+</tbody>
+</table>
+
+</body>
+</html>

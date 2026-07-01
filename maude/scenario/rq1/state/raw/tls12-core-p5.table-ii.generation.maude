@@ -1,0 +1,15 @@
+load ../../tls12-core.maude
+
+set stats on .
+
+red in RQ1-TLS12-CORE : rq1CountUpTo(
+  TLS-12,
+  initialCWA,
+  rq1Tls12CoreConf,
+  rq1Tls12CoreP5Set,
+  rq1Tls12CoreP5Property,
+  0,
+  2
+) .
+
+quit

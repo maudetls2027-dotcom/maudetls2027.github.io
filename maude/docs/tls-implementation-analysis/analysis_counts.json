@@ -1,0 +1,35 @@
+{
+  "auto_bug_candidates": 2421,
+  "auto_rfc_probable_candidates": 212,
+  "created_at_cutoff": "2026-01-01T00:00:00Z",
+  "expressibility_counts_rfc_core_or_probable": {
+    "expressible_combination": 10,
+    "expressible_noCheck": 27,
+    "expressible_setM_add_remove": 30,
+    "partially_expressible": 90,
+    "requires_model_extension": 11
+  },
+  "generated_at": "2026-06-13T09:47:10+00:00",
+  "manual_classification_counts": {
+    "Not-related": 31,
+    "RFC-Core": 65,
+    "RFC-probable": 103,
+    "TLS-Adjacent": 13
+  },
+  "otherwise_count": 9,
+  "rfc5246_count": 65,
+  "rfc8446_count": 147,
+  "rfc_core_or_probable_count": 168,
+  "root_cause_counts_rfc_core_or_probable": {
+    "incorrect_field_construction": 30,
+    "incorrect_key_schedule": 11,
+    "incorrect_transcript_binding": 15,
+    "legacy_cross_version_error": 13,
+    "missing_state_transition_guard": 2,
+    "missing_validation": 25,
+    "negotiation_logic_error": 10,
+    "wrong_error_handling": 22,
+    "wrong_state_transition": 31,
+    "wrong_validation_predicate": 9
+  }
+}

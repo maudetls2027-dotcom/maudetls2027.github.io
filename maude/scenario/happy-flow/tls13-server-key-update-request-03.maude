@@ -1,0 +1,58 @@
+load ../../requirements/mixed-base.maude
+
+smod TLS13-HAPPY-SERVER-KEY-UPDATE-REQUEST-03 is
+  protecting RUN-SCENARIO .
+  protecting TLS-INITIAL-SYSTEM .
+  protecting TLS-ALL-VALUES .
+  protecting SET{BehaviorDVSpec} .
+
+
+  op initialCWA : -> ConfWithAction .
+  eq initialCWA = {system | nil : nil} .
+
+  op tlsProfile : -> TLSConfiguration .
+  eq tlsProfile =
+     tester(N1 . CI)
+   target(N2 . SI)
+   iversion(N1 . CI, TLS-13)
+   iversion(N2 . SI, TLS-13)
+   icipherSuites(N1 . CI, TLS-AES-256-GCM-SHA384)
+   icipherSuites(N2 . SI, TLS-AES-256-GCM-SHA384)
+   icompressions(N1 . CI, no-compression)
+   icompressions(N2 . SI, no-compression)
+   icertificates(N1 . CI, cert1(N1 . CI))
+   icertificates(N2 . SI, cert1(N2 . SI))
+   ipublicKeys(N1 . CI, pubKey1(CA))
+   ipublicKeys(N2 . SI, pubKey1(CA))
+   iprivateKeys(N1 . CI, prvKey1(N1 . CI))
+   iprivateKeys(N2 . SI, prvKey1(N2 . SI))
+   isupported-versions(N1 . CI, TLS-13)
+   isupported-versions(N2 . SI, TLS-13)
+   isignature-algorithms(N1 . CI, {ecdsa,sha256})
+   isignature-algorithms(N2 . SI, {ecdsa,sha256})
+   isupported-groups(N1 . CI, secp256r1)
+   isupported-groups(N2 . SI, secp256r1)
+   ikey-shares(N1 . CI, secp256r1)
+   ikey-shares(N2 . SI, secp256r1)
+       ikeyUpdateReq(N2 . SI, true)
+       ikeyUpdateWait(N1 . CI) .
+
+  op behaviorDeviationSpecification : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification = empty .
+
+  op scenarioProperty : -> ScenarioProperty .
+  eq scenarioProperty =
+     (anyStep *) ;
+   (ruleLabel('buildServerKeyUpdateRequestV3) and appliedNode(server)) ;
+   (anyStep *) ;
+   (ruleLabel('processServerKeyUpdateRequestV3) and appliedNode(client)) ;
+   (anyStep *) ;
+   (ruleLabel('buildClientKeyUpdateResponseV3) and appliedNode(client)) ;
+   (anyStep *) ;
+   (ruleLabel('processClientKeyUpdateResponseV3) and appliedNode(server)) ;
+   (anyStep *) ;
+   ((N1 . CI . @clientState = av[V3C-CLOSED]) and
+    (N2 . SI . @serverState = av[V3S-CLOSED])) .
+endsm
+
+red runScenario(TLS-13, initialCWA, tlsProfile, behaviorDeviationSpecification, scenarioProperty) .

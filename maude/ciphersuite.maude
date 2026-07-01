@@ -1,0 +1,714 @@
+fmod ASYM-KEY-TYPE is
+
+  sort AsymKeyType .
+
+  op dss : -> AsymKeyType [ctor] .
+  op ecdsa : -> AsymKeyType [ctor] .
+  op eddsa : -> AsymKeyType [ctor] .
+  op dsa : -> AsymKeyType [ctor] .
+  op rsa : -> AsymKeyType [ctor] .
+  ops ed25519 ed448 : -> AsymKeyType [ctor] .
+endfm
+
+fmod SYM-KEY-TYPE is
+
+  sort SymKeyType .
+
+  op aes128 : -> SymKeyType [ctor] .
+  op aes256 : -> SymKeyType [ctor] .
+  op des : -> SymKeyType [ctor] .
+  op rc4 : -> SymKeyType [ctor] .
+endfm
+
+fmod CURVE-TYPE is
+
+  sort CurveType .
+
+  op namedcurve : -> CurveType [ctor] .
+  op unknowncurve : -> CurveType [ctor] .
+endfm
+
+
+fmod NAMED-CURVE is
+
+  sort NamedCurve .
+
+  op secp160k1 : -> NamedCurve [ctor] .
+  op secp160r1 : -> NamedCurve [ctor] .
+  op secp160r2 : -> NamedCurve [ctor] .
+  op secp192k1 : -> NamedCurve [ctor] .
+  op secp192r1 : -> NamedCurve [ctor] .
+  op secp224r1 : -> NamedCurve [ctor] .
+  op secp224k1 : -> NamedCurve [ctor] .
+  op secp256r1 : -> NamedCurve [ctor] .
+  op secp256k1 : -> NamedCurve [ctor] .
+  op secp384r1 : -> NamedCurve [ctor] .
+  op secp521r1 : -> NamedCurve [ctor] .
+endfm
+
+fmod FINITE-FIELD is
+
+  sort FiniteField .
+
+  op ffdhe2048 : -> FiniteField [ctor] .
+  op ffdhe3072 : -> FiniteField [ctor] .
+  op ffdhe4096 : -> FiniteField [ctor] .
+  op ffdhe6144 : -> FiniteField [ctor] .
+  op ffdhe8192 : -> FiniteField [ctor] .
+endfm
+
+fmod NAMED-GROUP is
+  including NAMED-CURVE .
+  including FINITE-FIELD .
+
+  sort NamedGroup .
+  subsort NamedCurve FiniteField < NamedGroup .
+endfm
+
+view NamedGroup from TRIV to NAMED-GROUP is
+  sort Elt to NamedGroup .
+endv
+
+--- [Note] The KeyExchangeAlgorithm is not the actual cipher used for
+--- encryption or signature; it 'denotes' the method used to derive the symmetric key.
+fmod CIPHER-KEYEXCHANGE is
+
+  sort KeyExchangeAlgorithm .
+
+  op psk : -> KeyExchangeAlgorithm [ctor] .
+  op dhepsk : -> KeyExchangeAlgorithm [ctor] .
+  op ecdhepsk : -> KeyExchangeAlgorithm [ctor] .
+  op dh : -> KeyExchangeAlgorithm [ctor] .
+  op ecdh : -> KeyExchangeAlgorithm [ctor] .
+  op dhe : -> KeyExchangeAlgorithm [ctor] .
+  op ecdhe : -> KeyExchangeAlgorithm [ctor] .
+  op rsaKE : -> KeyExchangeAlgorithm [ctor] .
+endfm
+
+--- [Note] In the case of RSA, it refers to the RSA-PKCS used for authentication
+fmod CIPHER-AUTHENTICATION is
+  including ASYM-KEY-TYPE .
+
+  sort AuthenticationAlgorithm .
+  subsort AsymKeyType < AuthenticationAlgorithm .
+
+  op anon : -> AuthenticationAlgorithm [ctor] .
+endfm
+
+fmod CIPHER-RECORD-ENCRYPTION is
+  including SYM-KEY-TYPE .
+
+  sort EncryptionAlgorithm .
+  subsort SymKeyType < EncryptionAlgorithm .
+
+  op nullE : -> EncryptionAlgorithm .
+endfm
+
+fmod BLOCK-CIPHER-MODE is
+
+  sort BlockCipherMode .
+
+  op nullB : -> BlockCipherMode [ctor] .
+  op cbc : -> BlockCipherMode [ctor] .
+  op ccm : -> BlockCipherMode [ctor] .
+  op gcm : -> BlockCipherMode [ctor] .
+  op ccm8 : -> BlockCipherMode [ctor] .
+endfm
+
+fmod CIPHER-HASH is
+
+  sort HashAlgorithm .
+
+  op md5 : -> HashAlgorithm [ctor] .
+  op sha : -> HashAlgorithm [ctor] .
+  op sha224 : -> HashAlgorithm [ctor] .
+  op sha384 : -> HashAlgorithm [ctor] .
+  op sha256 : -> HashAlgorithm [ctor] .
+  op sha512 : -> HashAlgorithm [ctor] .
+  op intrinsic : -> HashAlgorithm [ctor] .
+endfm
+
+
+fmod CIPHER-SUITE is
+  sort CipherSuite .
+    --- TLS 1.2
+  op TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA : -> CipherSuite [ctor] .
+  op TLS-DHE-RSA-WITH-AES-256-CBC-SHA : -> CipherSuite [ctor] .
+  op TLS-DHE-RSA-WITH-AES-128-CBC-SHA : -> CipherSuite [ctor] .
+  op TLS-DH-anon-WITH-AES-128-CBC-SHA : -> CipherSuite [ctor] .
+  op TLS-RSA-WITH-AES-256-CBC-SHA : -> CipherSuite [ctor] .
+  op TLS-RSA-WITH-AES-128-CBC-SHA : -> CipherSuite [ctor] .
+  op TLS-RSA-WITH-NULL-MD5 : -> CipherSuite [ctor] .
+  op TLS-RSA-WITH-NULL-SHA : -> CipherSuite [ctor] .
+  op TLS-PSK-WITH-AES-256-CBC-SHA : -> CipherSuite [ctor] .
+  op TLS-PSK-WITH-AES-128-CBC-SHA256 : -> CipherSuite [ctor] .
+  op TLS-PSK-WITH-AES-256-CBC-SHA384 : -> CipherSuite [ctor] .
+  op TLS-PSK-WITH-AES-128-CBC-SHA : -> CipherSuite [ctor] .
+  op TLS-PSK-WITH-NULL-SHA256 : -> CipherSuite [ctor] .
+  op TLS-PSK-WITH-NULL-SHA384 : -> CipherSuite [ctor] .
+  op TLS-PSK-WITH-NULL-SHA : -> CipherSuite [ctor] .
+  op TLS-ECDHE-RSA-WITH-AES-256-CBC-SHA : -> CipherSuite [ctor] .
+  op TLS-ECDHE-RSA-WITH-AES-128-CBC-SHA : -> CipherSuite [ctor] .
+  op TLS-ECDHE-ECDSA-WITH-AES-256-CBC-SHA : -> CipherSuite [ctor] .
+  op TLS-ECDHE-ECDSA-WITH-AES-128-CBC-SHA : -> CipherSuite [ctor] .
+  op TLS-ECDHE-RSA-WITH-RC4-128-SHA : -> CipherSuite [ctor] .
+  op TLS-ECDHE-ECDSA-WITH-RC4-128-SHA : -> CipherSuite [ctor] .
+  op TLS-ECDHE-RSA-WITH-3DES-EDE-CBC-SHA : -> CipherSuite [ctor] .
+  op TLS-ECDHE-ECDSA-WITH-3DES-EDE-CBC-SHA : -> CipherSuite [ctor] .
+  op TLS-ECDHE-RSA-WITH-AES-128-CBC-SHA256 : -> CipherSuite [ctor] .
+  op TLS-ECDHE-ECDSA-WITH-AES-128-CBC-SHA256 : -> CipherSuite [ctor] .
+  op TLS-ECDHE-RSA-WITH-AES-256-CBC-SHA384 : -> CipherSuite [ctor] .
+  op TLS-ECDHE-ECDSA-WITH-AES-256-CBC-SHA384 : -> CipherSuite [ctor] .
+  op TLS-ECDHE-ECDSA-WITH-NULL-SHA : -> CipherSuite [ctor] .
+  op TLS-ECDHE-PSK-WITH-NULL-SHA256 : -> CipherSuite [ctor] .
+  op TLS-ECDHE-PSK-WITH-AES-128-CBC-SHA256 : -> CipherSuite [ctor] .
+  op TLS-ECDH-RSA-WITH-AES-256-CBC-SHA : -> CipherSuite [ctor] .
+  op TLS-ECDH-RSA-WITH-AES-128-CBC-SHA : -> CipherSuite [ctor] .
+  op TLS-ECDH-ECDSA-WITH-AES-256-CBC-SHA : -> CipherSuite [ctor] .
+  op TLS-ECDH-ECDSA-WITH-AES-128-CBC-SHA : -> CipherSuite [ctor] .
+  op TLS-ECDH-RSA-WITH-RC4-128-SHA : -> CipherSuite [ctor] .
+  op TLS-ECDH-ECDSA-WITH-RC4-128-SHA : -> CipherSuite [ctor] .
+  op TLS-ECDH-RSA-WITH-3DES-EDE-CBC-SHA : -> CipherSuite [ctor] .
+  op TLS-ECDH-ECDSA-WITH-3DES-EDE-CBC-SHA : -> CipherSuite [ctor] .
+  op TLS-ECDH-RSA-WITH-AES-128-CBC-SHA256 : -> CipherSuite [ctor] .
+  op TLS-ECDH-ECDSA-WITH-AES-128-CBC-SHA256 : -> CipherSuite [ctor] .
+  op TLS-ECDH-RSA-WITH-AES-256-CBC-SHA384 : -> CipherSuite [ctor] .
+  op TLS-ECDH-ECDSA-WITH-AES-256-CBC-SHA384 : -> CipherSuite [ctor] .
+  op TLS-DHE-RSA-WITH-AES-256-CBC-SHA256 : -> CipherSuite [ctor] .
+  op TLS-DHE-RSA-WITH-AES-128-CBC-SHA256 : -> CipherSuite [ctor] .
+  op TLS-RSA-WITH-AES-256-CBC-SHA256 : -> CipherSuite [ctor] .
+  op TLS-RSA-WITH-AES-128-CBC-SHA256 : -> CipherSuite [ctor] .
+  op TLS-RSA-WITH-NULL-SHA256 : -> CipherSuite [ctor] .
+  op TLS-DHE-PSK-WITH-AES-128-CBC-SHA256 : -> CipherSuite [ctor] .
+  op TLS-DHE-PSK-WITH-NULL-SHA256 : -> CipherSuite [ctor] .
+  op TLS-DHE-PSK-WITH-AES-256-CBC-SHA384 : -> CipherSuite [ctor] .
+  op TLS-DHE-PSK-WITH-NULL-SHA384 : -> CipherSuite [ctor] .
+  op TLS-RSA-WITH-AES-128-GCM-SHA256 : -> CipherSuite [ctor] .
+  op TLS-RSA-WITH-AES-256-GCM-SHA384 : -> CipherSuite [ctor] .
+  op TLS-DHE-RSA-WITH-AES-128-GCM-SHA256 : -> CipherSuite [ctor] .
+  op TLS-DHE-RSA-WITH-AES-256-GCM-SHA384 : -> CipherSuite [ctor] .
+  op TLS-DH-anon-WITH-AES-256-GCM-SHA384 : -> CipherSuite [ctor] .
+  op TLS-PSK-WITH-AES-128-GCM-SHA256 : -> CipherSuite [ctor] .
+  op TLS-PSK-WITH-AES-256-GCM-SHA384 : -> CipherSuite [ctor] .
+  op TLS-DHE-PSK-WITH-AES-128-GCM-SHA256 : -> CipherSuite [ctor] .
+  op TLS-DHE-PSK-WITH-AES-256-GCM-SHA384 : -> CipherSuite [ctor] .
+  op TLS-ECDHE-ECDSA-WITH-AES-128-GCM-SHA256 : -> CipherSuite [ctor] .
+  op TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384 : -> CipherSuite [ctor] .
+  op TLS-ECDH-ECDSA-WITH-AES-128-GCM-SHA256 : -> CipherSuite [ctor] .
+  op TLS-ECDH-ECDSA-WITH-AES-256-GCM-SHA384 : -> CipherSuite [ctor] .
+  op TLS-ECDHE-RSA-WITH-AES-128-GCM-SHA256 : -> CipherSuite [ctor] .
+  op TLS-ECDHE-RSA-WITH-AES-256-GCM-SHA384 : -> CipherSuite [ctor] .
+  op TLS-ECDH-RSA-WITH-AES-128-GCM-SHA256 : -> CipherSuite [ctor] .
+  op TLS-ECDH-RSA-WITH-AES-256-GCM-SHA384 : -> CipherSuite [ctor] .
+  op TLS-RSA-WITH-AES-128-CCM-8 : -> CipherSuite [ctor] .
+  op TLS-RSA-WITH-AES-256-CCM-8 : -> CipherSuite [ctor] .
+  op TLS-ECDHE-ECDSA-WITH-AES-128-CCM : -> CipherSuite [ctor] .
+  op TLS-ECDHE-ECDSA-WITH-AES-128-CCM-8 : -> CipherSuite [ctor] .
+  op TLS-ECDHE-ECDSA-WITH-AES-256-CCM-8 : -> CipherSuite [ctor] .
+  op TLS-PSK-WITH-AES-128-CCM : -> CipherSuite [ctor] .
+  op TLS-PSK-WITH-AES-256-CCM : -> CipherSuite [ctor] .
+  op TLS-PSK-WITH-AES-128-CCM-8 : -> CipherSuite [ctor] .
+  op TLS-PSK-WITH-AES-256-CCM-8 : -> CipherSuite [ctor] .
+  op TLS-DHE-PSK-WITH-AES-128-CCM : -> CipherSuite [ctor] .
+  op TLS-DHE-PSK-WITH-AES-256-CCM : -> CipherSuite [ctor] .
+
+  --- TLS 1.3
+  op TLS-AES-128-CCM-SHA256 : -> CipherSuite [ctor] .
+  op TLS-AES-128-CCM-8-SHA256 : -> CipherSuite [ctor] .
+  op TLS-AES-128-GCM-SHA256 : -> CipherSuite [ctor] .
+  op TLS-AES-256-GCM-SHA384 : -> CipherSuite [ctor] .
+endfm
+
+view CipherSuite from TRIV to CIPHER-SUITE is
+  sort Elt to CipherSuite .
+endv
+
+fmod CIPHER-SUITE-OPERATION is
+  protecting NAT .
+  protecting CIPHER-SUITE .
+  protecting CIPHER-KEYEXCHANGE .
+  protecting CIPHER-AUTHENTICATION .
+  protecting CIPHER-RECORD-ENCRYPTION .
+  protecting BLOCK-CIPHER-MODE .
+  protecting CIPHER-HASH .
+  
+  op keyC  : CipherSuite -> KeyExchangeAlgorithm .
+  op authC : CipherSuite -> AuthenticationAlgorithm .
+  op encrC : CipherSuite -> EncryptionAlgorithm .
+  op modeC : CipherSuite -> BlockCipherMode .
+  op hashC : CipherSuite -> HashAlgorithm .
+  op prfC : CipherSuite -> HashAlgorithm .
+  op verifyDataLengthC : CipherSuite -> Nat .
+  op validVerifyDataLengthC : CipherSuite -> Bool .
+  var CS : CipherSuite .
+
+  eq prfC(CS) = hashC(CS) .
+  eq verifyDataLengthC(CS) = 12 [owise] .
+  eq validVerifyDataLengthC(CS) = verifyDataLengthC(CS) >= 12 .
+
+  -----------------------------
+  --- KeyExchange Algorithm ---
+  -----------------------------
+  eq keyC(TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA) = dhe .
+  eq keyC(TLS-DHE-RSA-WITH-AES-256-CBC-SHA) = dhe .
+  eq keyC(TLS-DHE-RSA-WITH-AES-128-CBC-SHA) = dhe .
+  eq keyC(TLS-DH-anon-WITH-AES-128-CBC-SHA) = dh .
+  eq keyC(TLS-RSA-WITH-AES-256-CBC-SHA) = rsaKE .
+  eq keyC(TLS-RSA-WITH-AES-128-CBC-SHA) = rsaKE .
+  eq keyC(TLS-RSA-WITH-NULL-MD5) = rsaKE .
+  eq keyC(TLS-RSA-WITH-NULL-SHA) = rsaKE .
+  eq keyC(TLS-PSK-WITH-AES-256-CBC-SHA) = psk .
+  eq keyC(TLS-PSK-WITH-AES-128-CBC-SHA256) = psk .
+  eq keyC(TLS-PSK-WITH-AES-256-CBC-SHA384) = psk .
+  eq keyC(TLS-PSK-WITH-AES-128-CBC-SHA) = psk .
+  eq keyC(TLS-PSK-WITH-NULL-SHA256) = psk .
+  eq keyC(TLS-PSK-WITH-NULL-SHA384) = psk .
+  eq keyC(TLS-PSK-WITH-NULL-SHA) = psk .
+
+  eq keyC(TLS-ECDHE-RSA-WITH-AES-256-CBC-SHA) = ecdhe .
+  eq keyC(TLS-ECDHE-RSA-WITH-AES-128-CBC-SHA) = ecdhe .
+  eq keyC(TLS-ECDHE-ECDSA-WITH-AES-256-CBC-SHA) = ecdhe .
+  eq keyC(TLS-ECDHE-ECDSA-WITH-AES-128-CBC-SHA) = ecdhe .
+  eq keyC(TLS-ECDHE-RSA-WITH-RC4-128-SHA) = ecdhe .
+  eq keyC(TLS-ECDHE-ECDSA-WITH-RC4-128-SHA) = ecdhe .
+  eq keyC(TLS-ECDHE-RSA-WITH-3DES-EDE-CBC-SHA) = ecdhe .
+  eq keyC(TLS-ECDHE-ECDSA-WITH-3DES-EDE-CBC-SHA) = ecdhe .
+  eq keyC(TLS-ECDHE-RSA-WITH-AES-128-CBC-SHA256) = ecdhe .
+  eq keyC(TLS-ECDHE-ECDSA-WITH-AES-128-CBC-SHA256) = ecdhe .
+  eq keyC(TLS-ECDHE-RSA-WITH-AES-256-CBC-SHA384) = ecdhe .
+  eq keyC(TLS-ECDHE-ECDSA-WITH-AES-256-CBC-SHA384) = ecdhe .
+  eq keyC(TLS-ECDHE-ECDSA-WITH-NULL-SHA) = ecdhe .
+  eq keyC(TLS-ECDHE-PSK-WITH-NULL-SHA256) = ecdhepsk .
+  eq keyC(TLS-ECDHE-PSK-WITH-AES-128-CBC-SHA256) = ecdhepsk .
+
+  eq keyC(TLS-ECDH-RSA-WITH-AES-256-CBC-SHA) = ecdh .
+  eq keyC(TLS-ECDH-RSA-WITH-AES-128-CBC-SHA) = ecdh .
+  eq keyC(TLS-ECDH-ECDSA-WITH-AES-256-CBC-SHA) = ecdh .
+  eq keyC(TLS-ECDH-ECDSA-WITH-AES-128-CBC-SHA) = ecdh .
+  eq keyC(TLS-ECDH-RSA-WITH-RC4-128-SHA) = ecdh .
+  eq keyC(TLS-ECDH-ECDSA-WITH-RC4-128-SHA) = ecdh .
+  eq keyC(TLS-ECDH-RSA-WITH-3DES-EDE-CBC-SHA) = ecdh .
+  eq keyC(TLS-ECDH-ECDSA-WITH-3DES-EDE-CBC-SHA) = ecdh .
+  eq keyC(TLS-ECDH-RSA-WITH-AES-128-CBC-SHA256) = ecdh .
+  eq keyC(TLS-ECDH-ECDSA-WITH-AES-128-CBC-SHA256) = ecdh .
+  eq keyC(TLS-ECDH-RSA-WITH-AES-256-CBC-SHA384) = ecdh .
+  eq keyC(TLS-ECDH-ECDSA-WITH-AES-256-CBC-SHA384) = ecdh .
+
+  eq keyC(TLS-DHE-RSA-WITH-AES-256-CBC-SHA256) = dhe .
+  eq keyC(TLS-DHE-RSA-WITH-AES-128-CBC-SHA256) = dhe .
+  eq keyC(TLS-RSA-WITH-AES-256-CBC-SHA256) = rsaKE .
+  eq keyC(TLS-RSA-WITH-AES-128-CBC-SHA256) = rsaKE .
+  eq keyC(TLS-RSA-WITH-NULL-SHA256) = rsaKE .
+  eq keyC(TLS-DHE-PSK-WITH-AES-128-CBC-SHA256) = dhepsk .
+  eq keyC(TLS-DHE-PSK-WITH-NULL-SHA256) = dhepsk .
+
+  eq keyC(TLS-DHE-PSK-WITH-AES-256-CBC-SHA384) = dhepsk .
+  eq keyC(TLS-DHE-PSK-WITH-NULL-SHA384) = dhepsk .
+
+  eq keyC(TLS-RSA-WITH-AES-128-GCM-SHA256) = rsaKE .
+  eq keyC(TLS-RSA-WITH-AES-256-GCM-SHA384) = rsaKE .
+  eq keyC(TLS-DHE-RSA-WITH-AES-128-GCM-SHA256) = dhe .
+  eq keyC(TLS-DHE-RSA-WITH-AES-256-GCM-SHA384) = dhe .
+  eq keyC(TLS-DH-anon-WITH-AES-256-GCM-SHA384) = dh .
+  eq keyC(TLS-PSK-WITH-AES-128-GCM-SHA256) = psk .
+  eq keyC(TLS-PSK-WITH-AES-256-GCM-SHA384) = psk .
+  eq keyC(TLS-DHE-PSK-WITH-AES-128-GCM-SHA256) = dhepsk .
+  eq keyC(TLS-DHE-PSK-WITH-AES-256-GCM-SHA384) = dhepsk .
+
+  eq keyC(TLS-ECDHE-ECDSA-WITH-AES-128-GCM-SHA256) = ecdhe .
+  eq keyC(TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384) = ecdhe .
+  eq keyC(TLS-ECDH-ECDSA-WITH-AES-128-GCM-SHA256) = ecdh .
+  eq keyC(TLS-ECDH-ECDSA-WITH-AES-256-GCM-SHA384) = ecdh .
+  eq keyC(TLS-ECDHE-RSA-WITH-AES-128-GCM-SHA256) = ecdhe .
+  eq keyC(TLS-ECDHE-RSA-WITH-AES-256-GCM-SHA384) = ecdhe .
+  eq keyC(TLS-ECDH-RSA-WITH-AES-128-GCM-SHA256) = ecdh .
+  eq keyC(TLS-ECDH-RSA-WITH-AES-256-GCM-SHA384) = ecdh .
+
+  eq keyC(TLS-RSA-WITH-AES-128-CCM-8) = rsaKE .
+  eq keyC(TLS-RSA-WITH-AES-256-CCM-8) = rsaKE .
+  eq keyC(TLS-ECDHE-ECDSA-WITH-AES-128-CCM) = ecdhe .
+  eq keyC(TLS-ECDHE-ECDSA-WITH-AES-128-CCM-8) = ecdhe .
+  eq keyC(TLS-ECDHE-ECDSA-WITH-AES-256-CCM-8) = ecdhe .
+  eq keyC(TLS-PSK-WITH-AES-128-CCM) = psk .
+  eq keyC(TLS-PSK-WITH-AES-256-CCM) = psk .
+  eq keyC(TLS-PSK-WITH-AES-128-CCM-8) = psk .
+  eq keyC(TLS-PSK-WITH-AES-256-CCM-8) = psk .
+  eq keyC(TLS-DHE-PSK-WITH-AES-128-CCM) = dhepsk .
+  eq keyC(TLS-DHE-PSK-WITH-AES-256-CCM) = dhepsk .
+
+
+  --------------------------------
+  --- Authentication Algorithm ---
+  --------------------------------
+  eq authC(TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA) = rsa .
+  eq authC(TLS-DHE-RSA-WITH-AES-256-CBC-SHA) = rsa .
+  eq authC(TLS-DHE-RSA-WITH-AES-128-CBC-SHA) = rsa .
+  eq authC(TLS-DH-anon-WITH-AES-128-CBC-SHA) = anon .
+  eq authC(TLS-RSA-WITH-AES-256-CBC-SHA) = rsa .
+  eq authC(TLS-RSA-WITH-AES-128-CBC-SHA) = rsa .
+  eq authC(TLS-RSA-WITH-NULL-MD5) = rsa .
+  eq authC(TLS-RSA-WITH-NULL-SHA) = rsa .
+  eq authC(TLS-PSK-WITH-AES-256-CBC-SHA) = anon .
+  eq authC(TLS-PSK-WITH-AES-128-CBC-SHA256) = anon .
+  eq authC(TLS-PSK-WITH-AES-256-CBC-SHA384) = anon .
+  eq authC(TLS-PSK-WITH-AES-128-CBC-SHA) = anon .
+  eq authC(TLS-PSK-WITH-NULL-SHA256) = anon .
+  eq authC(TLS-PSK-WITH-NULL-SHA384) = anon .
+  eq authC(TLS-PSK-WITH-NULL-SHA) = anon .
+
+  eq authC(TLS-ECDHE-RSA-WITH-AES-256-CBC-SHA) = rsa .
+  eq authC(TLS-ECDHE-RSA-WITH-AES-128-CBC-SHA) = rsa .
+  eq authC(TLS-ECDHE-ECDSA-WITH-AES-256-CBC-SHA) = ecdsa .
+  eq authC(TLS-ECDHE-ECDSA-WITH-AES-128-CBC-SHA) = ecdsa .
+  eq authC(TLS-ECDHE-RSA-WITH-RC4-128-SHA) = rsa .
+  eq authC(TLS-ECDHE-ECDSA-WITH-RC4-128-SHA) = ecdsa .
+  eq authC(TLS-ECDHE-RSA-WITH-3DES-EDE-CBC-SHA) = rsa .
+  eq authC(TLS-ECDHE-ECDSA-WITH-3DES-EDE-CBC-SHA) = ecdsa .
+  eq authC(TLS-ECDHE-RSA-WITH-AES-128-CBC-SHA256) = rsa .
+  eq authC(TLS-ECDHE-ECDSA-WITH-AES-128-CBC-SHA256) = ecdsa .
+  eq authC(TLS-ECDHE-RSA-WITH-AES-256-CBC-SHA384) = rsa .
+  eq authC(TLS-ECDHE-ECDSA-WITH-AES-256-CBC-SHA384) = ecdsa .
+  eq authC(TLS-ECDHE-ECDSA-WITH-NULL-SHA) = ecdsa .
+  eq authC(TLS-ECDHE-PSK-WITH-NULL-SHA256) = anon .
+  eq authC(TLS-ECDHE-PSK-WITH-AES-128-CBC-SHA256) = anon .
+
+  eq authC(TLS-ECDH-RSA-WITH-AES-256-CBC-SHA) = rsa .
+  eq authC(TLS-ECDH-RSA-WITH-AES-128-CBC-SHA) = rsa .
+  eq authC(TLS-ECDH-ECDSA-WITH-AES-256-CBC-SHA) = ecdsa .
+  eq authC(TLS-ECDH-ECDSA-WITH-AES-128-CBC-SHA) = ecdsa .
+  eq authC(TLS-ECDH-RSA-WITH-RC4-128-SHA) = rsa .
+  eq authC(TLS-ECDH-ECDSA-WITH-RC4-128-SHA) = ecdsa .
+  eq authC(TLS-ECDH-RSA-WITH-3DES-EDE-CBC-SHA) = rsa .
+  eq authC(TLS-ECDH-ECDSA-WITH-3DES-EDE-CBC-SHA) = ecdsa .
+  eq authC(TLS-ECDH-RSA-WITH-AES-128-CBC-SHA256) = rsa .
+  eq authC(TLS-ECDH-ECDSA-WITH-AES-128-CBC-SHA256) = ecdsa .
+  eq authC(TLS-ECDH-RSA-WITH-AES-256-CBC-SHA384) = rsa .
+  eq authC(TLS-ECDH-ECDSA-WITH-AES-256-CBC-SHA384) = ecdsa .
+
+  eq authC(TLS-DHE-RSA-WITH-AES-256-CBC-SHA256) = rsa .
+  eq authC(TLS-DHE-RSA-WITH-AES-128-CBC-SHA256) = rsa .
+  eq authC(TLS-RSA-WITH-AES-256-CBC-SHA256) = rsa .
+  eq authC(TLS-RSA-WITH-AES-128-CBC-SHA256) = rsa .
+  eq authC(TLS-RSA-WITH-NULL-SHA256) = rsa .
+  eq authC(TLS-DHE-PSK-WITH-AES-128-CBC-SHA256) = anon .
+  eq authC(TLS-DHE-PSK-WITH-NULL-SHA256) = anon .
+
+  eq authC(TLS-DHE-PSK-WITH-AES-256-CBC-SHA384) = anon .
+  eq authC(TLS-DHE-PSK-WITH-NULL-SHA384) = anon .
+
+  eq authC(TLS-RSA-WITH-AES-128-GCM-SHA256) = rsa .
+  eq authC(TLS-RSA-WITH-AES-256-GCM-SHA384) = rsa .
+  eq authC(TLS-DHE-RSA-WITH-AES-128-GCM-SHA256) = rsa .
+  eq authC(TLS-DHE-RSA-WITH-AES-256-GCM-SHA384) = rsa .
+  eq authC(TLS-DH-anon-WITH-AES-256-GCM-SHA384) = anon .
+  eq authC(TLS-PSK-WITH-AES-128-GCM-SHA256) = anon .
+  eq authC(TLS-PSK-WITH-AES-256-GCM-SHA384) = anon .
+  eq authC(TLS-DHE-PSK-WITH-AES-128-GCM-SHA256) = anon .
+  eq authC(TLS-DHE-PSK-WITH-AES-256-GCM-SHA384) = anon .
+
+  eq authC(TLS-ECDHE-ECDSA-WITH-AES-128-GCM-SHA256) = ecdsa .
+  eq authC(TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384) = ecdsa .
+  eq authC(TLS-ECDH-ECDSA-WITH-AES-128-GCM-SHA256) = ecdsa .
+  eq authC(TLS-ECDH-ECDSA-WITH-AES-256-GCM-SHA384) = ecdsa .
+  eq authC(TLS-ECDHE-RSA-WITH-AES-128-GCM-SHA256) = rsa .
+  eq authC(TLS-ECDHE-RSA-WITH-AES-256-GCM-SHA384) = rsa .
+  eq authC(TLS-ECDH-RSA-WITH-AES-128-GCM-SHA256) = rsa .
+  eq authC(TLS-ECDH-RSA-WITH-AES-256-GCM-SHA384) = rsa .
+
+  eq authC(TLS-RSA-WITH-AES-128-CCM-8) = rsa .
+  eq authC(TLS-RSA-WITH-AES-256-CCM-8) = rsa .
+  eq authC(TLS-ECDHE-ECDSA-WITH-AES-128-CCM) = ecdsa .
+  eq authC(TLS-ECDHE-ECDSA-WITH-AES-128-CCM-8) = ecdsa .
+  eq authC(TLS-ECDHE-ECDSA-WITH-AES-256-CCM-8) = ecdsa .
+  eq authC(TLS-PSK-WITH-AES-128-CCM) = anon .
+  eq authC(TLS-PSK-WITH-AES-256-CCM) = anon .
+  eq authC(TLS-PSK-WITH-AES-128-CCM-8) = anon .
+  eq authC(TLS-PSK-WITH-AES-256-CCM-8) = anon .
+  eq authC(TLS-DHE-PSK-WITH-AES-128-CCM) = anon .
+  eq authC(TLS-DHE-PSK-WITH-AES-256-CCM) = anon .
+
+  -----------------------
+  --- Bulk Encryption ---
+  -----------------------
+  eq encrC(TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA) = des .
+  eq encrC(TLS-DHE-RSA-WITH-AES-256-CBC-SHA) = aes256 .
+  eq encrC(TLS-DHE-RSA-WITH-AES-128-CBC-SHA) = aes128 .
+  eq encrC(TLS-DH-anon-WITH-AES-128-CBC-SHA) = aes128 .
+  eq encrC(TLS-RSA-WITH-AES-256-CBC-SHA) = aes256 .
+  eq encrC(TLS-RSA-WITH-AES-128-CBC-SHA) = aes128 .
+  eq encrC(TLS-RSA-WITH-NULL-MD5) = nullE .
+  eq encrC(TLS-RSA-WITH-NULL-SHA) = nullE .
+  eq encrC(TLS-PSK-WITH-AES-256-CBC-SHA) = aes256 .
+  eq encrC(TLS-PSK-WITH-AES-128-CBC-SHA256) = aes128 .
+  eq encrC(TLS-PSK-WITH-AES-256-CBC-SHA384) = aes256 .
+  eq encrC(TLS-PSK-WITH-AES-128-CBC-SHA) = aes128 .
+  eq encrC(TLS-PSK-WITH-NULL-SHA256) = nullE .
+  eq encrC(TLS-PSK-WITH-NULL-SHA384) = nullE .
+  eq encrC(TLS-PSK-WITH-NULL-SHA) = nullE .
+
+  eq encrC(TLS-ECDHE-RSA-WITH-AES-256-CBC-SHA) = aes256 .
+  eq encrC(TLS-ECDHE-RSA-WITH-AES-128-CBC-SHA) = aes128 .
+  eq encrC(TLS-ECDHE-ECDSA-WITH-AES-256-CBC-SHA) = aes256 .
+  eq encrC(TLS-ECDHE-ECDSA-WITH-AES-128-CBC-SHA) = aes128 .
+  eq encrC(TLS-ECDHE-RSA-WITH-RC4-128-SHA) = rc4 .
+  eq encrC(TLS-ECDHE-ECDSA-WITH-RC4-128-SHA) = rc4 .
+  eq encrC(TLS-ECDHE-RSA-WITH-3DES-EDE-CBC-SHA) = des .
+  eq encrC(TLS-ECDHE-ECDSA-WITH-3DES-EDE-CBC-SHA) = des .
+  eq encrC(TLS-ECDHE-RSA-WITH-AES-128-CBC-SHA256) = aes128 .
+  eq encrC(TLS-ECDHE-ECDSA-WITH-AES-128-CBC-SHA256) = aes128 .
+  eq encrC(TLS-ECDHE-RSA-WITH-AES-256-CBC-SHA384) = aes256 .
+  eq encrC(TLS-ECDHE-ECDSA-WITH-AES-256-CBC-SHA384) = aes256 .
+  eq encrC(TLS-ECDHE-ECDSA-WITH-NULL-SHA) = nullE .
+  eq encrC(TLS-ECDHE-PSK-WITH-NULL-SHA256) = nullE .
+  eq encrC(TLS-ECDHE-PSK-WITH-AES-128-CBC-SHA256) = aes128 .
+
+  eq encrC(TLS-ECDH-RSA-WITH-AES-256-CBC-SHA) = aes256 .
+  eq encrC(TLS-ECDH-RSA-WITH-AES-128-CBC-SHA) = aes128 .
+  eq encrC(TLS-ECDH-ECDSA-WITH-AES-256-CBC-SHA) = aes256 .
+  eq encrC(TLS-ECDH-ECDSA-WITH-AES-128-CBC-SHA) = aes128 .
+  eq encrC(TLS-ECDH-RSA-WITH-RC4-128-SHA) = rc4 .
+  eq encrC(TLS-ECDH-ECDSA-WITH-RC4-128-SHA) = rc4 .
+  eq encrC(TLS-ECDH-RSA-WITH-3DES-EDE-CBC-SHA) = des .
+  eq encrC(TLS-ECDH-ECDSA-WITH-3DES-EDE-CBC-SHA) = des .
+  eq encrC(TLS-ECDH-RSA-WITH-AES-128-CBC-SHA256) = aes128 .
+  eq encrC(TLS-ECDH-ECDSA-WITH-AES-128-CBC-SHA256) = aes128 .
+  eq encrC(TLS-ECDH-RSA-WITH-AES-256-CBC-SHA384) = aes256 .
+  eq encrC(TLS-ECDH-ECDSA-WITH-AES-256-CBC-SHA384) = aes256 .
+
+  eq encrC(TLS-DHE-RSA-WITH-AES-256-CBC-SHA256) = aes256 .
+  eq encrC(TLS-DHE-RSA-WITH-AES-128-CBC-SHA256) = aes128 .
+  eq encrC(TLS-RSA-WITH-AES-256-CBC-SHA256) = aes256 .
+  eq encrC(TLS-RSA-WITH-AES-128-CBC-SHA256) = aes128 .
+  eq encrC(TLS-RSA-WITH-NULL-SHA256) = nullE .
+  eq encrC(TLS-DHE-PSK-WITH-AES-128-CBC-SHA256) = aes128 .
+  eq encrC(TLS-DHE-PSK-WITH-NULL-SHA256) = nullE .
+
+  eq encrC(TLS-DHE-PSK-WITH-AES-256-CBC-SHA384) = aes256 .
+  eq encrC(TLS-DHE-PSK-WITH-NULL-SHA384) = nullE .
+
+  eq encrC(TLS-RSA-WITH-AES-128-GCM-SHA256) = aes128 .
+  eq encrC(TLS-RSA-WITH-AES-256-GCM-SHA384) = aes256 .
+  eq encrC(TLS-DHE-RSA-WITH-AES-128-GCM-SHA256) = aes128 .
+  eq encrC(TLS-DHE-RSA-WITH-AES-256-GCM-SHA384) = aes256 .
+  eq encrC(TLS-DH-anon-WITH-AES-256-GCM-SHA384) = aes256 .
+  eq encrC(TLS-PSK-WITH-AES-128-GCM-SHA256) = aes128 .
+  eq encrC(TLS-PSK-WITH-AES-256-GCM-SHA384) = aes256 .
+  eq encrC(TLS-DHE-PSK-WITH-AES-128-GCM-SHA256) = aes128 .
+  eq encrC(TLS-DHE-PSK-WITH-AES-256-GCM-SHA384) = aes256 .
+
+  eq encrC(TLS-ECDHE-ECDSA-WITH-AES-128-GCM-SHA256) = aes128 .
+  eq encrC(TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384) = aes256 .
+  eq encrC(TLS-ECDH-ECDSA-WITH-AES-128-GCM-SHA256) = aes128 .
+  eq encrC(TLS-ECDH-ECDSA-WITH-AES-256-GCM-SHA384) = aes256 .
+  eq encrC(TLS-ECDHE-RSA-WITH-AES-128-GCM-SHA256) = aes128 .
+  eq encrC(TLS-ECDHE-RSA-WITH-AES-256-GCM-SHA384) = aes256 .
+  eq encrC(TLS-ECDH-RSA-WITH-AES-128-GCM-SHA256) = aes128 .
+  eq encrC(TLS-ECDH-RSA-WITH-AES-256-GCM-SHA384) = aes256 .
+
+  eq encrC(TLS-RSA-WITH-AES-128-CCM-8) = aes128 .
+  eq encrC(TLS-RSA-WITH-AES-256-CCM-8) = aes256 .
+  eq encrC(TLS-ECDHE-ECDSA-WITH-AES-128-CCM) = aes128 .
+  eq encrC(TLS-ECDHE-ECDSA-WITH-AES-128-CCM-8) = aes128 .
+  eq encrC(TLS-ECDHE-ECDSA-WITH-AES-256-CCM-8) = aes256 .
+  eq encrC(TLS-PSK-WITH-AES-128-CCM) = aes128 .
+  eq encrC(TLS-PSK-WITH-AES-256-CCM) = aes256 .
+  eq encrC(TLS-PSK-WITH-AES-128-CCM-8) = aes128 .
+  eq encrC(TLS-PSK-WITH-AES-256-CCM-8) = aes256 .
+  eq encrC(TLS-DHE-PSK-WITH-AES-128-CCM) = aes128 .
+  eq encrC(TLS-DHE-PSK-WITH-AES-256-CCM) = aes256 .
+
+  eq encrC(TLS-AES-128-CCM-SHA256) = aes128 .
+  eq encrC(TLS-AES-128-CCM-8-SHA256) = aes128 .
+  eq encrC(TLS-AES-128-GCM-SHA256) = aes128 .
+  eq encrC(TLS-AES-256-GCM-SHA384) = aes128 .
+
+  ------------------------
+  --- Bulk Cipher Mode ---
+  ------------------------
+  eq modeC(TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA) = cbc .
+  eq modeC(TLS-DHE-RSA-WITH-AES-256-CBC-SHA) = cbc .
+  eq modeC(TLS-DHE-RSA-WITH-AES-128-CBC-SHA) = cbc .
+  eq modeC(TLS-DH-anon-WITH-AES-128-CBC-SHA) = cbc .
+  eq modeC(TLS-RSA-WITH-AES-256-CBC-SHA) = cbc .
+  eq modeC(TLS-RSA-WITH-AES-128-CBC-SHA) = cbc .
+  eq modeC(TLS-RSA-WITH-NULL-MD5) = nullB .
+  eq modeC(TLS-RSA-WITH-NULL-SHA) = nullB .
+  eq modeC(TLS-PSK-WITH-AES-256-CBC-SHA) = cbc .
+  eq modeC(TLS-PSK-WITH-AES-128-CBC-SHA256) = cbc .
+  eq modeC(TLS-PSK-WITH-AES-256-CBC-SHA384) = cbc .
+  eq modeC(TLS-PSK-WITH-AES-128-CBC-SHA) = cbc .
+  eq modeC(TLS-PSK-WITH-NULL-SHA256) = nullB .
+  eq modeC(TLS-PSK-WITH-NULL-SHA384) = nullB .
+  eq modeC(TLS-PSK-WITH-NULL-SHA) = nullB .
+
+  eq modeC(TLS-ECDHE-RSA-WITH-AES-256-CBC-SHA) = cbc .
+  eq modeC(TLS-ECDHE-RSA-WITH-AES-128-CBC-SHA) = cbc .
+  eq modeC(TLS-ECDHE-ECDSA-WITH-AES-256-CBC-SHA) = cbc .
+  eq modeC(TLS-ECDHE-ECDSA-WITH-AES-128-CBC-SHA) = cbc .
+  eq modeC(TLS-ECDHE-RSA-WITH-RC4-128-SHA) = nullB .
+  eq modeC(TLS-ECDHE-ECDSA-WITH-RC4-128-SHA) = nullB .
+  eq modeC(TLS-ECDHE-RSA-WITH-3DES-EDE-CBC-SHA) = cbc .
+  eq modeC(TLS-ECDHE-ECDSA-WITH-3DES-EDE-CBC-SHA) = cbc .
+  eq modeC(TLS-ECDHE-RSA-WITH-AES-128-CBC-SHA256) = cbc .
+  eq modeC(TLS-ECDHE-ECDSA-WITH-AES-128-CBC-SHA256) = cbc .
+  eq modeC(TLS-ECDHE-RSA-WITH-AES-256-CBC-SHA384) = cbc .
+  eq modeC(TLS-ECDHE-ECDSA-WITH-AES-256-CBC-SHA384) = cbc .
+  eq modeC(TLS-ECDHE-ECDSA-WITH-NULL-SHA) = nullB .
+  eq modeC(TLS-ECDHE-PSK-WITH-NULL-SHA256) = nullB .
+  eq modeC(TLS-ECDHE-PSK-WITH-AES-128-CBC-SHA256) = cbc .
+
+  eq modeC(TLS-ECDH-RSA-WITH-AES-256-CBC-SHA) = cbc .
+  eq modeC(TLS-ECDH-RSA-WITH-AES-128-CBC-SHA) = cbc .
+  eq modeC(TLS-ECDH-ECDSA-WITH-AES-256-CBC-SHA) = cbc .
+  eq modeC(TLS-ECDH-ECDSA-WITH-AES-128-CBC-SHA) = cbc .
+  eq modeC(TLS-ECDH-RSA-WITH-RC4-128-SHA) = nullB .
+  eq modeC(TLS-ECDH-ECDSA-WITH-RC4-128-SHA) = nullB .
+  eq modeC(TLS-ECDH-RSA-WITH-3DES-EDE-CBC-SHA) = cbc .
+  eq modeC(TLS-ECDH-ECDSA-WITH-3DES-EDE-CBC-SHA) = cbc .
+  eq modeC(TLS-ECDH-RSA-WITH-AES-128-CBC-SHA256) = cbc .
+  eq modeC(TLS-ECDH-ECDSA-WITH-AES-128-CBC-SHA256) = cbc .
+  eq modeC(TLS-ECDH-RSA-WITH-AES-256-CBC-SHA384) = cbc .
+  eq modeC(TLS-ECDH-ECDSA-WITH-AES-256-CBC-SHA384) = cbc .
+
+  eq modeC(TLS-DHE-RSA-WITH-AES-256-CBC-SHA256) = cbc .
+  eq modeC(TLS-DHE-RSA-WITH-AES-128-CBC-SHA256) = cbc .
+  eq modeC(TLS-RSA-WITH-AES-256-CBC-SHA256) = cbc .
+  eq modeC(TLS-RSA-WITH-AES-128-CBC-SHA256) = cbc .
+  eq modeC(TLS-RSA-WITH-NULL-SHA256) = nullB .
+  eq modeC(TLS-DHE-PSK-WITH-AES-128-CBC-SHA256) = cbc .
+  eq modeC(TLS-DHE-PSK-WITH-NULL-SHA256) = nullB .
+
+  eq modeC(TLS-DHE-PSK-WITH-AES-256-CBC-SHA384) = cbc .
+  eq modeC(TLS-DHE-PSK-WITH-NULL-SHA384) = nullB .
+
+  eq modeC(TLS-RSA-WITH-AES-128-GCM-SHA256) = gcm .
+  eq modeC(TLS-RSA-WITH-AES-256-GCM-SHA384) = gcm .
+  eq modeC(TLS-DHE-RSA-WITH-AES-128-GCM-SHA256) = gcm .
+  eq modeC(TLS-DHE-RSA-WITH-AES-256-GCM-SHA384) = gcm .
+  eq modeC(TLS-DH-anon-WITH-AES-256-GCM-SHA384) = gcm .
+  eq modeC(TLS-PSK-WITH-AES-128-GCM-SHA256) = gcm .
+  eq modeC(TLS-PSK-WITH-AES-256-GCM-SHA384) = gcm .
+  eq modeC(TLS-DHE-PSK-WITH-AES-128-GCM-SHA256) = gcm .
+  eq modeC(TLS-DHE-PSK-WITH-AES-256-GCM-SHA384) = gcm .
+
+  eq modeC(TLS-ECDHE-ECDSA-WITH-AES-128-GCM-SHA256) = gcm .
+  eq modeC(TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384) = gcm .
+  eq modeC(TLS-ECDH-ECDSA-WITH-AES-128-GCM-SHA256) = gcm .
+  eq modeC(TLS-ECDH-ECDSA-WITH-AES-256-GCM-SHA384) = gcm .
+  eq modeC(TLS-ECDHE-RSA-WITH-AES-128-GCM-SHA256) = gcm .
+  eq modeC(TLS-ECDHE-RSA-WITH-AES-256-GCM-SHA384) = gcm .
+  eq modeC(TLS-ECDH-RSA-WITH-AES-128-GCM-SHA256) = gcm .
+  eq modeC(TLS-ECDH-RSA-WITH-AES-256-GCM-SHA384) = gcm .
+
+  eq modeC(TLS-RSA-WITH-AES-128-CCM-8) = ccm8 .
+  eq modeC(TLS-RSA-WITH-AES-256-CCM-8) = ccm8 .
+  eq modeC(TLS-ECDHE-ECDSA-WITH-AES-128-CCM) = ccm .
+  eq modeC(TLS-ECDHE-ECDSA-WITH-AES-128-CCM-8) = ccm8 .
+  eq modeC(TLS-ECDHE-ECDSA-WITH-AES-256-CCM-8) = ccm8 .
+  eq modeC(TLS-PSK-WITH-AES-128-CCM) = ccm .
+  eq modeC(TLS-PSK-WITH-AES-256-CCM) = ccm .
+  eq modeC(TLS-PSK-WITH-AES-128-CCM-8) = ccm8 .
+  eq modeC(TLS-PSK-WITH-AES-256-CCM-8) = ccm8 .
+  eq modeC(TLS-DHE-PSK-WITH-AES-128-CCM) = ccm .
+  eq modeC(TLS-DHE-PSK-WITH-AES-256-CCM) = ccm .
+
+  eq modeC(TLS-AES-128-CCM-SHA256) = ccm .
+  eq modeC(TLS-AES-128-CCM-8-SHA256) = ccm8 .
+  eq modeC(TLS-AES-128-GCM-SHA256) = gcm .
+  eq modeC(TLS-AES-256-GCM-SHA384) = gcm .
+
+  ----------------------
+  --- Hash Algorithm ---
+  ----------------------
+  eq hashC(TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA) = sha .
+  eq hashC(TLS-DHE-RSA-WITH-AES-256-CBC-SHA) = sha .
+  eq hashC(TLS-DHE-RSA-WITH-AES-128-CBC-SHA) = sha .
+  eq hashC(TLS-DH-anon-WITH-AES-128-CBC-SHA) = sha .
+  eq hashC(TLS-RSA-WITH-AES-256-CBC-SHA) = sha .
+  eq hashC(TLS-RSA-WITH-AES-128-CBC-SHA) = sha .
+  eq hashC(TLS-RSA-WITH-NULL-MD5) = md5 .
+  eq hashC(TLS-RSA-WITH-NULL-SHA) = sha .
+  eq hashC(TLS-PSK-WITH-AES-256-CBC-SHA) = sha .
+  eq hashC(TLS-PSK-WITH-AES-128-CBC-SHA256) = sha256 .
+  eq hashC(TLS-PSK-WITH-AES-256-CBC-SHA384) = sha384 .
+  eq hashC(TLS-PSK-WITH-AES-128-CBC-SHA) = sha .
+  eq hashC(TLS-PSK-WITH-NULL-SHA256) = sha256 .
+  eq hashC(TLS-PSK-WITH-NULL-SHA384) = sha384 .
+  eq hashC(TLS-PSK-WITH-NULL-SHA) = sha .
+
+  eq hashC(TLS-ECDHE-RSA-WITH-AES-256-CBC-SHA) = sha .
+  eq hashC(TLS-ECDHE-RSA-WITH-AES-128-CBC-SHA) = sha .
+  eq hashC(TLS-ECDHE-ECDSA-WITH-AES-256-CBC-SHA) = sha .
+  eq hashC(TLS-ECDHE-ECDSA-WITH-AES-128-CBC-SHA) = sha .
+  eq hashC(TLS-ECDHE-RSA-WITH-RC4-128-SHA) = sha .
+  eq hashC(TLS-ECDHE-ECDSA-WITH-RC4-128-SHA) = sha .
+  eq hashC(TLS-ECDHE-RSA-WITH-3DES-EDE-CBC-SHA) = sha .
+  eq hashC(TLS-ECDHE-ECDSA-WITH-3DES-EDE-CBC-SHA) = sha .
+  eq hashC(TLS-ECDHE-RSA-WITH-AES-128-CBC-SHA256) = sha256 .
+  eq hashC(TLS-ECDHE-ECDSA-WITH-AES-128-CBC-SHA256) = sha256 .
+  eq hashC(TLS-ECDHE-RSA-WITH-AES-256-CBC-SHA384) = sha384 .
+  eq hashC(TLS-ECDHE-ECDSA-WITH-AES-256-CBC-SHA384) = sha384 .
+  eq hashC(TLS-ECDHE-ECDSA-WITH-NULL-SHA) = sha .
+  eq hashC(TLS-ECDHE-PSK-WITH-NULL-SHA256) = sha256 .
+  eq hashC(TLS-ECDHE-PSK-WITH-AES-128-CBC-SHA256) = sha256 .
+
+  eq hashC(TLS-ECDH-RSA-WITH-AES-256-CBC-SHA) = sha .
+  eq hashC(TLS-ECDH-RSA-WITH-AES-128-CBC-SHA) = sha .
+  eq hashC(TLS-ECDH-ECDSA-WITH-AES-256-CBC-SHA) = sha .
+  eq hashC(TLS-ECDH-ECDSA-WITH-AES-128-CBC-SHA) = sha .
+  eq hashC(TLS-ECDH-RSA-WITH-RC4-128-SHA) = sha .
+  eq hashC(TLS-ECDH-ECDSA-WITH-RC4-128-SHA) = sha .
+  eq hashC(TLS-ECDH-RSA-WITH-3DES-EDE-CBC-SHA) = sha .
+  eq hashC(TLS-ECDH-ECDSA-WITH-3DES-EDE-CBC-SHA) = sha .
+  eq hashC(TLS-ECDH-RSA-WITH-AES-128-CBC-SHA256) = sha256 .
+  eq hashC(TLS-ECDH-ECDSA-WITH-AES-128-CBC-SHA256) = sha256 .
+  eq hashC(TLS-ECDH-RSA-WITH-AES-256-CBC-SHA384) = sha384 .
+  eq hashC(TLS-ECDH-ECDSA-WITH-AES-256-CBC-SHA384) = sha384 .
+
+  eq hashC(TLS-DHE-RSA-WITH-AES-256-CBC-SHA256) = sha256 .
+  eq hashC(TLS-DHE-RSA-WITH-AES-128-CBC-SHA256) = sha256 .
+  eq hashC(TLS-RSA-WITH-AES-256-CBC-SHA256) = sha256 .
+  eq hashC(TLS-RSA-WITH-AES-128-CBC-SHA256) = sha256 .
+  eq hashC(TLS-RSA-WITH-NULL-SHA256) = sha256 .
+  eq hashC(TLS-DHE-PSK-WITH-AES-128-CBC-SHA256) = sha256 .
+  eq hashC(TLS-DHE-PSK-WITH-NULL-SHA256) = sha256 .
+
+  eq hashC(TLS-DHE-PSK-WITH-AES-256-CBC-SHA384) = sha384 .
+  eq hashC(TLS-DHE-PSK-WITH-NULL-SHA384) = sha384 .
+
+  eq hashC(TLS-RSA-WITH-AES-128-GCM-SHA256) = sha256 .
+  eq hashC(TLS-RSA-WITH-AES-256-GCM-SHA384) = sha384 .
+  eq hashC(TLS-DHE-RSA-WITH-AES-128-GCM-SHA256) = sha256 .
+  eq hashC(TLS-DHE-RSA-WITH-AES-256-GCM-SHA384) = sha384 .
+  eq hashC(TLS-DH-anon-WITH-AES-256-GCM-SHA384) = sha384 .
+  eq hashC(TLS-PSK-WITH-AES-128-GCM-SHA256) = sha256 .
+  eq hashC(TLS-PSK-WITH-AES-256-GCM-SHA384) = sha384 .
+  eq hashC(TLS-DHE-PSK-WITH-AES-128-GCM-SHA256) = sha256 .
+  eq hashC(TLS-DHE-PSK-WITH-AES-256-GCM-SHA384) = sha384 .
+
+  eq hashC(TLS-ECDHE-ECDSA-WITH-AES-128-GCM-SHA256) = sha256 .
+  eq hashC(TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384) = sha384 .
+  eq hashC(TLS-ECDH-ECDSA-WITH-AES-128-GCM-SHA256) = sha256 .
+  eq hashC(TLS-ECDH-ECDSA-WITH-AES-256-GCM-SHA384) = sha384 .
+  eq hashC(TLS-ECDHE-RSA-WITH-AES-128-GCM-SHA256) = sha256 .
+  eq hashC(TLS-ECDHE-RSA-WITH-AES-256-GCM-SHA384) = sha384 .
+  eq hashC(TLS-ECDH-RSA-WITH-AES-128-GCM-SHA256) = sha256 .
+  eq hashC(TLS-ECDH-RSA-WITH-AES-256-GCM-SHA384) = sha384 .
+
+  eq hashC(TLS-RSA-WITH-AES-128-CCM-8) = sha256 .
+  eq hashC(TLS-RSA-WITH-AES-256-CCM-8) = sha256 .
+  eq hashC(TLS-ECDHE-ECDSA-WITH-AES-128-CCM) = sha256 .
+  eq hashC(TLS-ECDHE-ECDSA-WITH-AES-128-CCM-8) = sha256 .
+  eq hashC(TLS-ECDHE-ECDSA-WITH-AES-256-CCM-8) = sha256 .
+  eq hashC(TLS-PSK-WITH-AES-128-CCM) = sha256 .
+  eq hashC(TLS-PSK-WITH-AES-256-CCM) = sha256 .
+  eq hashC(TLS-PSK-WITH-AES-128-CCM-8) = sha256 .
+  eq hashC(TLS-PSK-WITH-AES-256-CCM-8) = sha256 .
+  eq hashC(TLS-DHE-PSK-WITH-AES-128-CCM) = sha256 .
+  eq hashC(TLS-DHE-PSK-WITH-AES-256-CCM) = sha256 .
+
+  eq hashC(TLS-AES-128-CCM-SHA256) = sha256 .
+  eq hashC(TLS-AES-128-CCM-8-SHA256) = sha256 .
+  eq hashC(TLS-AES-128-GCM-SHA256) = sha256 .
+  eq hashC(TLS-AES-256-GCM-SHA384) = sha384 .
+endfm

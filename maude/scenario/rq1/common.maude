@@ -1,0 +1,149 @@
+load ../../requirements/mixed-base.maude
+load ../threat-module.maude
+
+smod RQ1-COMMON is
+  protecting RUN-SCENARIO .
+  protecting SET{BehaviorDVSpec} .
+  protecting QID .
+  protecting RULE-LABEL .
+  protecting ACTION-PROPOSITION .
+  protecting BOOL .
+  protecting NAT .
+  protecting META-LEVEL .
+
+  vars CWA0 CWA1 : ConfWithAction .
+  var PV : ProtocolVersion .
+  var TCONF : TLSConfiguration .
+  var BSS : Set{BehaviorDVSpec} .
+  var SPR : ScenarioProperty .
+  var MODULE : Module .
+  var RESULT : Term .
+  var TYPE : Type .
+  vars N CAP : Nat .
+
+  vars OLD NEW : Qid .
+  vars OLD-LABEL NEW-LABEL LABEL : RuleLabel .
+  vars AP AP' : ActionProposition .
+  vars STP STP' : StepProperty .
+  vars SPR0 SPR1 : ScenarioProperty .
+  var BMS : Set{BehaviorModification} .
+  var LABELS : StepProperty .
+
+  op rq1Relabel : Qid Set{BehaviorDVSpec} -> Set{BehaviorDVSpec} .
+  eq rq1Relabel(NEW, empty) = empty .
+  eq rq1Relabel(NEW, ({OLD, AP, BMS}, BSS)) =
+     {NEW, AP, BMS}, rq1Relabel(NEW, BSS) .
+
+  op rq1RelabelAction : RuleLabel RuleLabel ActionProposition -> ActionProposition .
+  eq rq1RelabelAction(OLD-LABEL, NEW-LABEL, ruleLabel(OLD-LABEL)) = ruleLabel(NEW-LABEL) .
+  eq rq1RelabelAction(OLD-LABEL, NEW-LABEL, AP and AP') =
+     rq1RelabelAction(OLD-LABEL, NEW-LABEL, AP) and
+     rq1RelabelAction(OLD-LABEL, NEW-LABEL, AP') .
+  eq rq1RelabelAction(OLD-LABEL, NEW-LABEL, AP or AP') =
+     rq1RelabelAction(OLD-LABEL, NEW-LABEL, AP) or
+     rq1RelabelAction(OLD-LABEL, NEW-LABEL, AP') .
+  eq rq1RelabelAction(OLD-LABEL, NEW-LABEL, not AP) =
+     not rq1RelabelAction(OLD-LABEL, NEW-LABEL, AP) .
+  eq rq1RelabelAction(OLD-LABEL, NEW-LABEL, ruleLabel(LABEL)) = ruleLabel(LABEL) [owise] .
+  eq rq1RelabelAction(OLD-LABEL, NEW-LABEL, AP) = AP [owise] .
+
+  op rq1RelabelStep : RuleLabel RuleLabel StepProperty -> StepProperty .
+  eq rq1RelabelStep(OLD-LABEL, NEW-LABEL, anyStep) = anyStep .
+  eq rq1RelabelStep(OLD-LABEL, NEW-LABEL, AP) =
+     rq1RelabelAction(OLD-LABEL, NEW-LABEL, AP) .
+  eq rq1RelabelStep(OLD-LABEL, NEW-LABEL, STP and STP') =
+     rq1RelabelStep(OLD-LABEL, NEW-LABEL, STP) and
+     rq1RelabelStep(OLD-LABEL, NEW-LABEL, STP') .
+  eq rq1RelabelStep(OLD-LABEL, NEW-LABEL, STP or STP') =
+     rq1RelabelStep(OLD-LABEL, NEW-LABEL, STP) or
+     rq1RelabelStep(OLD-LABEL, NEW-LABEL, STP') .
+  eq rq1RelabelStep(OLD-LABEL, NEW-LABEL, STP) = STP [owise] .
+
+  op rq1RelabelScenario : RuleLabel RuleLabel ScenarioProperty -> ScenarioProperty .
+  eq rq1RelabelScenario(OLD-LABEL, NEW-LABEL, STP) =
+     rq1RelabelStep(OLD-LABEL, NEW-LABEL, STP) .
+  eq rq1RelabelScenario(OLD-LABEL, NEW-LABEL, SPR0 ; SPR1) =
+     rq1RelabelScenario(OLD-LABEL, NEW-LABEL, SPR0) ;
+     rq1RelabelScenario(OLD-LABEL, NEW-LABEL, SPR1) .
+  eq rq1RelabelScenario(OLD-LABEL, NEW-LABEL, SPR0 *) =
+     rq1RelabelScenario(OLD-LABEL, NEW-LABEL, SPR0) * .
+  eq rq1RelabelScenario(OLD-LABEL, NEW-LABEL, SPR0 | SPR1) =
+     rq1RelabelScenario(OLD-LABEL, NEW-LABEL, SPR0) |
+     rq1RelabelScenario(OLD-LABEL, NEW-LABEL, SPR1) .
+
+  op rq1ErrorStateV2 : -> StateProposition .
+  eq rq1ErrorStateV2 =
+     ((N1 . CI . @clientState = av[V2C-ERROR]) or
+      (N2 . SI . @serverState = av[V2S-ERROR])) .
+
+  op rq1ErrorStateV3 : -> StateProposition .
+  eq rq1ErrorStateV3 =
+     ((N1 . CI . @clientState = av[V3C-ERROR]) or
+      (N2 . SI . @serverState = av[V3S-ERROR])) .
+
+  op rq1ClosedStateV2 : -> StateProposition .
+  eq rq1ClosedStateV2 =
+     ((N1 . CI . @clientState = av[V2C-CLOSED]) and
+      (N2 . SI . @serverState = av[V2S-CLOSED])) .
+
+  op rq1ClosedStateV3 : -> StateProposition .
+  eq rq1ClosedStateV3 =
+     ((N1 . CI . @clientState = av[V3C-CLOSED]) and
+      (N2 . SI . @serverState = av[V3S-CLOSED])) .
+
+  op rq1TerminalStateV2 : -> StateProposition .
+  eq rq1TerminalStateV2 = rq1ErrorStateV2 or rq1ClosedStateV2 .
+
+  op rq1TerminalStateV3 : -> StateProposition .
+  eq rq1TerminalStateV3 = rq1ErrorStateV3 or rq1ClosedStateV3 .
+
+  op rq1ErrorScenarioV2 : StepProperty -> ScenarioProperty .
+  eq rq1ErrorScenarioV2(LABELS) =
+     (anyStep *) ;
+     LABELS ;
+     (anyStep *) ;
+     rq1ErrorStateV2 .
+
+  op rq1ErrorScenarioV3 : StepProperty -> ScenarioProperty .
+  eq rq1ErrorScenarioV3(LABELS) =
+     (anyStep *) ;
+     LABELS ;
+     (anyStep *) ;
+     rq1ErrorStateV3 .
+
+  --- P3 includes replacements that complete normally, so its aggregate
+  --- measurement uses a terminal state rather than error-only.
+  op rq1TerminalScenarioV2 : StepProperty -> ScenarioProperty .
+  eq rq1TerminalScenarioV2(LABELS) =
+     (anyStep *) ;
+     LABELS ;
+     (anyStep *) ;
+     rq1TerminalStateV2 .
+
+  op rq1TerminalScenarioV3 : StepProperty -> ScenarioProperty .
+  eq rq1TerminalScenarioV3(LABELS) =
+     (anyStep *) ;
+     LABELS ;
+     (anyStep *) ;
+     rq1TerminalStateV3 .
+
+  op rq1HasSolution : ProtocolVersion ConfWithAction TLSConfiguration Set{BehaviorDVSpec} ScenarioProperty Nat -> Bool .
+
+  ceq rq1HasSolution(PV, CWA0, TCONF, BSS, SPR, N) = true
+   if MODULE := genThreatModule(PV, BSS)
+   /\ CWA1 := initializeCWA(TCONF, CWA0)
+   /\ {RESULT, TYPE} := metaSrewrite(MODULE, upTerm(CWA1), 'scenarioProperty[[upTerm(SPR)]], breadthFirst, N) .
+
+  ceq rq1HasSolution(PV, CWA0, TCONF, BSS, SPR, N) = false
+   if MODULE := genThreatModule(PV, BSS)
+   /\ CWA1 := initializeCWA(TCONF, CWA0)
+   /\ failure == metaSrewrite(MODULE, upTerm(CWA1), 'scenarioProperty[[upTerm(SPR)]], breadthFirst, N) .
+
+  op rq1CountUpTo : ProtocolVersion ConfWithAction TLSConfiguration Set{BehaviorDVSpec} ScenarioProperty Nat Nat -> Nat .
+  eq rq1CountUpTo(PV, CWA0, TCONF, BSS, SPR, N, 0) = 0 .
+  ceq rq1CountUpTo(PV, CWA0, TCONF, BSS, SPR, N, s CAP)
+    = s rq1CountUpTo(PV, CWA0, TCONF, BSS, SPR, s N, CAP)
+   if rq1HasSolution(PV, CWA0, TCONF, BSS, SPR, N) = true .
+  ceq rq1CountUpTo(PV, CWA0, TCONF, BSS, SPR, N, s CAP) = 0
+   if rq1HasSolution(PV, CWA0, TCONF, BSS, SPR, N) = false .
+endsm

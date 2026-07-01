@@ -1,0 +1,82 @@
+smod TEST-STRATEGY is
+  protecting NETWORK-BEHAVIOR .
+  protecting CONNECT-V2-API .
+  protecting ACCEPT-V2-API .
+  protecting CONNECT-V3-API .
+  protecting ACCEPT-V3-API .
+  protecting CONFIGURATION-WITH-ACTION .
+  protecting FORMAL-SCENARIO-GENERATOR .
+  protecting INTERNAL-FORMAL-SCENARIO-GENERATOR .
+  protecting TLS-INITIAL-SYSTEM .
+  protecting RUN-SCENARIO .
+  protecting MODIFY-MESSAGE-AND-OBJECT .
+  protecting TLS-MESSAGE-LONG-VALUE .
+
+
+   op initConf : -> TLSConfiguration .
+   eq initConf = iversion(N1 . CI, TLS-13)
+                 iversion(N2 . SI, TLS-13)
+                 icipherSuites(N1 . CI, TLS-AES-128-CCM-SHA256)
+                 icipherSuites(N2 . SI, TLS-AES-128-CCM-SHA256)
+				 icompressions(N1 . CI, no-compression)
+				 icompressions(N2 . SI, no-compression)
+				 icertificates(N1 . CI, cert1(N1 . CI))
+                 icertificates(N2 . SI, cert1(N2 . SI))
+				 icertificateRequest(N2 . SI, true)
+                 ipublicKeys(N1 . CI, pubKey1(CA))
+                 ipublicKeys(N2 . SI, pubKey1(CA))
+                 iprivateKeys(N1 . CI, prvKey1(N1 . CI))
+                 iprivateKeys(N2 . SI, prvKey1(N2 . SI))
+                 isupported-versions(N1 . CI, (TLS-13 nil))
+                 isupported-versions(N2 . SI, (TLS-13 nil))
+                 isignature-algorithms(N1 . CI, ({ecdsa,sha256} nil))
+                 isignature-algorithms(N2 . SI, ({ecdsa,sha256} nil))
+                 isupported-groups(N1 . CI, (secp256r1 nil))
+                 isupported-groups(N2 . SI, (secp256r1 nil))
+                 ikey-shares(N1 . CI, (secp256r1 nil))
+                 ikey-shares(N2 . SI, (secp256r1 nil)) .
+
+  -----------------------------
+  --- Interoperability Test ---
+  -----------------------------
+
+  --- Long CipherSites in TLS 1.3
+  op scen1 : -> ScenarioAction .
+  eq scen1 = init(initConf tester(N1 . CI) target(N2 . SI)) -> 
+             connect(N1 . CI, N2 . SI) -> 
+			 changeContent(client-hello-v3, {cipher-suites, replace(*(1), v[TLS-AES-128-CCM-SHA256 longCS(TLS-AES-128-CCM-SHA256)])}) ->
+			 close(N1 . CI, N2 . SI) .
+
+  --- Long Supported Versions in TLS 1.3
+  op scen2 : -> ScenarioAction .
+  eq scen2 = init(initConf tester(N1 . CI) target(N2 . SI)) -> 
+             connect(N1 . CI, N2 . SI) -> 
+			 changeContent(client-hello-v3, {supported-versions, replace(*(1), v[TLS-13 longPV(TLS-13)])}) ->
+			 close(N1 . CI, N2 . SI) .
+
+  --- Long Signature Algorithms in TLS 1.3
+  op scen3 : -> ScenarioAction .
+  eq scen3 = init(initConf tester(N1 . CI) target(N2 . SI)) -> 
+             connect(N1 . CI, N2 . SI) -> 
+			 changeContent(client-hello-v3, {signature-algorithms, replace(*(1), v[{ecdsa,sha256} longSA({ecdsa,sha256})])}) ->
+			 close(N1 . CI, N2 . SI) .
+
+  op scen4 : -> ScenarioAction .
+  eq scen4 = init(initConf tester(N2 . SI) target(N1 . CI)) -> 
+             connect(N1 . CI, N2 . SI) -> 
+			 changeContent(certificate-request-v3, {signature-algorithms, replace(*(1), v[{ecdsa,sha256} longSA({ecdsa,sha256})])}) ->
+			 close(N1 . CI, N2 . SI) .
+
+  --- Long Named Groups in TLS 1.3
+  op scen5 : -> ScenarioAction .
+  eq scen5 = init(initConf tester(N1 . CI) target(N2 . SI)) -> 
+             connect(N1 . CI, N2 . SI) -> 
+			 changeContent(client-hello-v3, {supported-groups, replace(*(1), v[secp256r1 longNG(secp256r1)])}) ->
+			 close(N1 . CI, N2 . SI) .
+
+  op scen6 : -> ScenarioAction .
+  eq scen6 = init(initConf tester(N2 . SI) target(N1 . CI)) -> 
+             connect(N1 . CI, N2 . SI) -> 
+			 changeContent(encrypted-extension-v3, {supported-groups, replace(*(1), v[secp256r1 longNG(secp256r1)])}) ->
+			 close(N1 . CI, N2 . SI) .
+endsm

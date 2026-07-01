@@ -1,0 +1,9 @@
+		     \||||||||||||||||||/
+		   --- Welcome to Maude ---
+		     /||||||||||||||||||\
+	     Maude 3.4 built: Mar 15 2024 20:07:12
+	     Copyright 1997-2024 SRI International
+		   Sun Jun 28 09:07:11 2026
+==========================================
+reduce in RQ1-TLS13-HRR : rq1CountUpTo(TLS-13, initialCWA, rq1Tls13HrrConf,
+    rq1Tls13HrrP3Set, rq1Tls13HrrP3Property, 0, 340) .

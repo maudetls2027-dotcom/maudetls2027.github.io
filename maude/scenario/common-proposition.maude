@@ -1,0 +1,7 @@
+fmod PROPOSITION-BOOLEAN-EXPRESSION is
+  sort PropositionBExpression .
+
+  op _and_ : PropositionBExpression PropositionBExpression -> PropositionBExpression [assoc prec 55] .
+  op _or_ : PropositionBExpression PropositionBExpression -> PropositionBExpression [assoc prec 59] .
+  op not_ : PropositionBExpression -> PropositionBExpression [prec 53] .
+endfm

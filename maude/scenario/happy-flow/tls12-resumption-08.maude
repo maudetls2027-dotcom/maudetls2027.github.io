@@ -1,0 +1,57 @@
+load ../../requirements/mixed-base.maude
+
+smod TLS12-HAPPY-RESUMPTION-08 is
+  protecting RUN-SCENARIO .
+  protecting TLS-INITIAL-SYSTEM .
+  protecting TLS-ALL-VALUES .
+  protecting SET{BehaviorDVSpec} .
+
+
+  op initialCWA : -> ConfWithAction .
+  eq initialCWA = {system | nil : nil} .
+
+  op tlsProfile : -> TLSConfiguration .
+  eq tlsProfile =
+     tester(N1 . CI)
+   target(N2 . SI)
+   iversion(N1 . CI, TLS-12)
+   iversion(N2 . SI, TLS-12)
+   icipherSuites(N1 . CI, TLS-ECDHE-ECDSA-WITH-AES-128-CBC-SHA256)
+   icipherSuites(N2 . SI, TLS-ECDHE-ECDSA-WITH-AES-128-CBC-SHA256)
+   icompressions(N1 . CI, no-compression)
+   icompressions(N2 . SI, no-compression)
+   icertificates(N1 . CI, cert1(N1 . CI))
+   icertificates(N2 . SI, cert1(N2 . SI))
+   ipublicKeys(N1 . CI, pubKey1(CA))
+   ipublicKeys(N2 . SI, pubKey1(CA))
+   iprivateKeys(N1 . CI, prvKey1(N1 . CI))
+   iprivateKeys(N2 . SI, prvKey1(N2 . SI))
+   isupported-groups(N1 . CI, secp384r1)
+   isupported-groups(N2 . SI, secp384r1)
+   isignature-algorithms(N1 . CI, {ecdsa,sha256})
+   isignature-algorithms(N2 . SI, {ecdsa,sha256})
+   icertificateRequest(N2 . SI)
+   icertificateTypes(N2 . SI, ecdsa-sign)
+   icertificateAlgos(N2 . SI, {ecdsa,sha256})
+       ireconnect(N1 . CI)
+       ireconnect(N2 . SI) .
+
+  op behaviorDeviationSpecification : -> Set{BehaviorDVSpec} .
+  eq behaviorDeviationSpecification = empty .
+
+  op scenarioProperty : -> ScenarioProperty .
+  eq scenarioProperty =
+     (anyStep *) ;
+   (ruleLabel('buildClientHelloV2) and appliedNode(client) and featureMap(@reconnectInProgress |-> av[true])) ;
+   (anyStep *) ;
+   (ruleLabel('buildServerHelloV2) and appliedNode(server) and featureMap(@sessionResumption |-> av[true])) ;
+   (anyStep *) ;
+   (ruleLabel('buildServerFinishedV2) and appliedNode(server) and featureMap(@sessionResumption |-> av[true])) ;
+   (anyStep *) ;
+   (ruleLabel('buildClientFinishedV2) and appliedNode(client) and featureMap(@sessionResumption |-> av[true])) ;
+   (anyStep *) ;
+   ((N1 . CI . @clientState = av[V2C-CLOSED]) and
+    (N2 . SI . @serverState = av[V2S-CLOSED])) .
+endsm
+
+red runScenario(TLS-12, initialCWA, tlsProfile, behaviorDeviationSpecification, scenarioProperty) .

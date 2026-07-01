@@ -1,0 +1,423 @@
+fmod CONTENT-TYPE is
+  sort ContentType .
+  ops handshake change-cipher-spec alert application-data : -> ContentType [ctor] .
+endfm
+
+view ContentType from TRIV to CONTENT-TYPE is
+  sort Elt to ContentType .
+endv
+
+fmod HANDSHAKE-TYPE is
+  sort HandshakeType .
+  ops client-hello server-hello certificate server-key-exchange
+      certificate-request server-hello-done client-key-exchange
+	  certificate-verify finished encrypted-extension hello-retry-request
+	  end-of-early-data new-session-ticket key-update-request : -> HandshakeType [ctor] .
+endfm
+
+view HandshakeType from TRIV to HANDSHAKE-TYPE is
+  sort Elt to HandshakeType .
+endv
+
+fmod PROTOCOL-VERSION is
+  protecting NAT .
+
+  sort ProtocolVersion .
+  ops SSL-30 TLS-10 TLS-11 TLS-12 TLS-13 : -> ProtocolVersion [ctor] .
+endfm
+
+view ProtocolVersion from TRIV to PROTOCOL-VERSION is
+  sort Elt to ProtocolVersion .
+endv
+
+fmod COMPRESSION-METHOD is
+  sort CompressionMethod .
+  ops zlib-compression no-compression : -> CompressionMethod [ctor] .
+endfm
+
+view CompressionMethod from TRIV to COMPRESSION-METHOD is
+  sort Elt to CompressionMethod .
+endv 
+
+fmod MESSAGE-SIZE is
+  sort MsgSize .
+  op valid : -> MsgSize [ctor] .
+endfm
+
+--- This is crypto computation result
+--- It should not be calculated in reverse 
+fmod DH-COMPUTATION is
+  protecting NAMED-CURVE .
+  protecting CURVE-TYPE .
+  protecting FINITE-FIELD .
+  protecting NONCE .
+
+  sorts DH ECDH DHComputation .
+  subsorts DH ECDH < DHComputation < Nonce .
+  op dh : FiniteField Nonce -> DH [ctor] .
+  op dh : DH DH -> DH [ctor] . --- dh(client, server)
+
+  op ecdh : NamedCurve Nonce -> ECDH [ctor] .
+  op ecdh : ECDH ECDH -> ECDH [ctor] . --- ecdh(client, server)
+
+  op dhCompute : DHComputation DHComputation -> DHComputation .
+  eq dhCompute(DH1:DH, DH2:DH) = dh(DH1:DH, DH2:DH) .
+  eq dhCompute(ECDH1:ECDH, ECDH2:ECDH) = ecdh(ECDH1:ECDH, ECDH2:ECDH) .
+endfm
+
+fmod HRR-RANDOM is
+  protecting NONCE .
+ 
+  op hrrNonce : -> Nonce [ctor] .
+endfm
+
+fmod KEY-UPDATE-REQUEST is
+  including BOOL .
+
+  sort KeyUpdateRequest .
+  subsort Bool < KeyUpdateRequest .
+  op unknown : -> KeyUpdateRequest [ctor] .
+endfm
+
+
+fmod PRE-MASTER-SECRET is
+  protecting CIPHER-KEYEXCHANGE .
+  protecting KEY .
+  protecting DH-COMPUTATION .
+  protecting PROTOCOL-VERSION .
+
+  sorts PreMasterSecret MasterSecret .
+  subsort PreMasterSecret MasterSecret < Nonce .
+  op pms : DHComputation -> PreMasterSecret .
+  op pms : ProtocolVersion Nonce -> PreMasterSecret . --- RSA key-exchange
+  op ms : PreMasterSecret Nonce Nonce -> MasterSecret . --- Server's Random and Client's Random
+endfm
+
+fmod KEY-BLOCK is
+  protecting PRE-MASTER-SECRET .
+  protecting STRING .
+
+  op keyblock : MasterSecret String Nonce Nonce -> Nonce .
+endfm
+
+fmod SIGNATURE-ALGORITHM is
+  protecting CIPHER-AUTHENTICATION .
+  protecting CIPHER-HASH .
+
+  sort SignatureAlgorithm .
+  op {_,_} : AuthenticationAlgorithm HashAlgorithm -> SignatureAlgorithm [ctor] .
+
+  op authC : SignatureAlgorithm -> AuthenticationAlgorithm [ctor] .
+  eq authC({AUTH:AuthenticationAlgorithm,HALGO:HashAlgorithm}) = AUTH:AuthenticationAlgorithm .
+
+  op hashC : SignatureAlgorithm -> HashAlgorithm [ctor] .
+  eq hashC({AUTH:AuthenticationAlgorithm,HALGO:HashAlgorithm}) = HALGO:HashAlgorithm .
+
+  op signatureKeyType : SignatureAlgorithm -> AsymKeyType .
+  eq signatureKeyType({AKT:AsymKeyType,HALGO:HashAlgorithm}) = AKT:AsymKeyType .
+endfm
+
+view SignatureAlgorithm from TRIV to SIGNATURE-ALGORITHM is
+  sort Elt to SignatureAlgorithm .
+endv 
+
+fmod CERTIFICATE-TYPE is
+  sort CertificateType .
+  ops rsa-sign dss-sign rsa-fixed-dh dss-fixed-dh ecdsa-sign rsa-fixed-ecdh ecdsa-fixed-ecdh : -> CertificateType [ctor] .
+endfm
+
+view CertificateType from TRIV to CERTIFICATE-TYPE is
+  sort Elt to CertificateType .
+endv
+
+fmod CERTIFICATE-EXTENSION-OID is
+  sort ObjectId CertificateExtensionOid KeyPurposeOid .
+  subsorts CertificateExtensionOid KeyPurposeOid < ObjectId .
+
+  ops id-ce-keyUsage id-ce-extKeyUsage unknown-certificate-extension-oid : -> CertificateExtensionOid [ctor] .
+  ops id-kp-serverAuth id-kp-clientAuth anyExtendedKeyUsage unknown-key-purpose-oid : -> KeyPurposeOid [ctor] .
+endfm
+
+view ObjectId from TRIV to CERTIFICATE-EXTENSION-OID is
+  sort Elt to ObjectId .
+endv
+
+fmod OID-FILTER is
+  protecting CERTIFICATE-EXTENSION-OID .
+  protecting LIST{ObjectId} .
+
+  sort OIDFilter .
+  op oid-filter : CertificateExtensionOid List{ObjectId} -> OIDFilter [ctor] .
+endfm
+
+view OIDFilter from TRIV to OID-FILTER is
+  sort Elt to OIDFilter .
+endv
+
+fmod X509-KEY-USAGE is
+  sort X509KeyUsage .
+  ops digitalSignature keyEncipherment keyAgreement keyCertSign cRLSign : -> X509KeyUsage [ctor] .
+endfm
+
+view X509KeyUsage from TRIV to X509-KEY-USAGE is
+  sort Elt to X509KeyUsage .
+endv
+
+--- [CA Certificate]
+--- Inside the CA Certificate, there is the CA's public key included. This public key
+--- is used when issuing other certificates. (e.g., server certificate)
+--- The CA signs the data of the CA certificate using its private key. In the signing
+--- process, typically a hash function is used to hash the data, and then the hash value
+--- is signed with the private key
+
+--- [Server Certificate]
+--- The server certificate is signed with the private key of the issuing Certificate 
+--- Authority. This signature is used to attest to the server's own public key and identity.
+
+--- [RFC5246]
+--- Note that this also implies that the DH_DSS, DH_RSA,
+--- ECDH_ECDSA, and ECDH_RSA key exchange algorithms do not restrict the
+--- algorithm used to sign the certificate.  Fixed DH certificates MAY be
+--- signed with any hash/signature algorithm pair appearing in the
+--- extension.  The names DH_DSS, DH_RSA, ECDH_ECDSA, and ECDH_RSA are historical.
+
+--- Certificate Examples
+---    Data:
+---        Version: 3 (0x2)
+---        Serial Number:
+---            7b:6d:5b:ac:7b:d5:16:9d:3f:7b:f2:ba:d7:a3:ba:43:1b:3d:ae:4c
+---        Signature Algorithm: ecdsa-with-SHA256
+---        Issuer: C=KR, ST=Seoul, O=MyOrg, CN=My Test EC CA
+---        Validity
+---            Not Before: Aug 20 06:39:27 2025 GMT
+---            Not After : Aug 18 06:39:27 2035 GMT
+---        Subject: C=KR, ST=Seoul, O=MyOrg, CN=My Test EC CA
+---        Subject Public Key Info:
+---            Public Key Algorithm: id-ecPublicKey
+---                Public-Key: (256 bit)
+---                pub:
+---                    04:12:dd:b8:1d:42:d0:3c:b4:ce:57:76:b4:2f:fe:
+---                    4b:fe:74:ad:a0:00:d7:22:03:85:f1:bd:d7:b3:b4:
+---                    64:46:b7:2c:e0:21:5e:a3:72:70:83:99:ad:05:fc:
+---                    17:e9:e7:83:3b:f9:9d:4b:cd:27:c4:94:e0:26:30:
+---                    07:ee:20:7c:31
+---                ASN1 OID: prime256v1
+---                NIST CURVE: P-256
+---        X509v3 extensions:
+---            X509v3 Basic Constraints: critical
+---                CA:TRUE, pathlen:0
+---            X509v3 Key Usage: critical
+---                Certificate Sign, CRL Sign
+---            X509v3 Subject Key Identifier:
+---                1D:92:E5:11:FB:E6:BE:98:AF:98:3F:A5:42:67:D3:13:97:9A:06:00
+---            X509v3 Authority Key Identifier:
+---                1D:92:E5:11:FB:E6:BE:98:AF:98:3F:A5:42:67:D3:13:97:9A:06:00
+---    Signature Algorithm: ecdsa-with-SHA256
+---    Signature Value:
+---        30:45:02:20:0f:63:5d:4f:00:d9:90:60:c4:46:0b:62:4d:1d:
+---        96:35:83:b6:0c:28:7d:ab:83:3e:c2:36:7b:2a:f0:88:91:ea:
+---        02:21:00:e6:f1:cf:14:b7:27:bb:d5:17:8b:7c:75:b5:cf:c6:
+---        ee:22:35:fb:b6:c5:60:60:35:b6:f0:8c:59:6c:6c:1a:1c
+fmod CERTIFICATE is
+  protecting NONCE .
+  protecting KEY .
+  protecting NAMED-GROUP .
+  protecting ENCRYPTED-MESSAGE-CONTENT .
+  protecting CERTIFICATE-TYPE .
+  protecting SIGNATURE-ALGORITHM .
+  protecting CIPHER-AUTHENTICATION .
+  protecting LIST{X509KeyUsage} .
+
+  sort Certificate .
+  op x509 : CertificateItems -> Certificate .
+
+  sorts CertificateItems CertificateItem .
+  subsort CertificateItem < CertificateItems .
+  op none : -> CertificateItems [ctor] .
+  op _,_ : CertificateItems CertificateItems -> CertificateItems [ctor assoc comm id: none] .
+
+  op crIssuer : TId -> CertificateItem [ctor] .
+  op crSubjectName : TId -> CertificateItem [ctor] .
+  op crPublicKeyAlgorithm : PublicKeyAlgorithm -> CertificateItem [ctor] .
+  op crPublicKey : Key -> CertificateItem [ctor] .
+  op crPublicKey : NamedGroup Nonce -> CertificateItem [ctor] .
+  op crSignatureAlgorithm : SignatureAlgorithm -> CertificateItem [ctor] .
+  op crSignature : EncrMsgContent -> CertificateItem [ctor] . 
+  op crKeyUsage : List{X509KeyUsage} -> CertificateItem [ctor] .
+  op crTrustAnchor : -> CertificateItem [ctor] .
+
+  sort TLS13CertificateType .
+  ops x509v3 raw-public-key openpgp : -> TLS13CertificateType [ctor] .
+  op crTls13CertificateType : TLS13CertificateType -> CertificateItem [ctor] .
+
+  sort PublicKeyAlgorithm .
+  op dhpublicnumber : -> PublicKeyAlgorithm [ctor] .
+  op id-ecPublicKey : -> PublicKeyAlgorithm [ctor] . --- ecdsa
+  op rsaEncryption : -> PublicKeyAlgorithm [ctor] .
+  op id-dsa : -> PublicKeyAlgorithm [ctor] .
+  ops id-Ed25519 id-Ed448 : -> PublicKeyAlgorithm [ctor] .
+endfm
+
+view Certificate from TRIV to CERTIFICATE is
+  sort Elt to Certificate .
+endv
+
+fmod ALERT is
+  protecting BOOL .
+
+  sort AlertDescription .
+  ops close-notify           unexpected-message     bad-record-mac
+      record-overflow        decompression-failure  handshake-failure
+      decryption-failed-reserved no-certificate     bad-certificate
+      unsupported-certificate
+      certificate-revoked    certificate-expired    certificate-unknown
+      illegal-parameter      unknown-ca             access-denied
+      decode-error           decrypt-error          protocol-version
+      export-restriction-reserved insufficient-security
+      internal-error         inappropriate-fallback
+      user-canceled          no-renogitation        unsupported-extension
+      protocol-version       illegal-parameter      certificate-unknown
+      missing-extension : -> AlertDescription  [ctor] .
+
+  op reservedAlertDescription : AlertDescription -> Bool .
+  var AD : AlertDescription .
+
+  eq reservedAlertDescription(decryption-failed-reserved) = true .
+  eq reservedAlertDescription(no-certificate) = true .
+  eq reservedAlertDescription(export-restriction-reserved) = true .
+  eq reservedAlertDescription(AD) = false [owise] .
+
+  sort AlertLevel .
+  ops none warning fatal : -> AlertLevel [ctor] .
+endfm
+
+
+fmod KEY-SHARE-ENTRY is
+  protecting NAMED-GROUP .
+  protecting DH-COMPUTATION .
+
+  sort KeyShareEntry .
+  op {_,_} : NamedGroup DHComputation -> KeyShareEntry [ctor] .
+endfm
+
+view KeyShareEntry from TRIV to KEY-SHARE-ENTRY is
+  sort Elt to KeyShareEntry .
+endv
+
+fmod PRE-SHARED-KEY-EXCHANGE-MODE is
+  sort PreSharedKeyExchangeMode .
+  op psk-ke : -> PreSharedKeyExchangeMode [ctor] .
+  op psk-dhe-ke : -> PreSharedKeyExchangeMode [ctor] .
+endfm
+
+view PreSharedKeyExchangeMode from TRIV to PRE-SHARED-KEY-EXCHANGE-MODE is
+ sort Elt to PreSharedKeyExchangeMode .
+endv
+
+fmod TICKET-IDENTIFIER is
+  protecting TLS-COMPONENT-ID .
+  protecting NAT .
+
+  sort TicketId .
+  op tkId : TId Nat -> TicketId .
+endfm
+
+view TicketId from TRIV to TICKET-IDENTIFIER is
+  sort Elt to TicketId .
+endv
+
+fmod EXTENSION is
+  protecting NONCE? .
+  protecting LIST{SignatureAlgorithm} .
+  protecting LIST{NamedGroup} .
+  protecting LIST{ProtocolVersion} .
+  protecting LIST{KeyShareEntry} .
+  protecting LIST{PreSharedKeyExchangeMode} .
+  protecting LIST{Nonce} .
+  protecting LIST{TicketId} .
+  protecting LIST{OIDFilter} .
+  protecting MESSAGE-SIZE .
+
+  sorts Extension ExtensionItem .
+  subsort ExtensionItem < Extension .
+  op empty : -> Extension [ctor] .
+  op __ : Extension Extension -> Extension [ctor assoc comm id: empty] .
+
+  op supported-versions : List{ProtocolVersion} -> ExtensionItem [ctor] .
+  op supported-versions-len : MsgSize -> ExtensionItem [ctor] .
+
+  --- [Note] In the case of TLS 1.2, it refers to the supported signature algorithm extension
+  op signature-algorithms : List{SignatureAlgorithm} -> ExtensionItem [ctor] .
+  op signature-algorithms-len : MsgSize -> ExtensionItem [ctor] .
+  op signature-algorithms-cert : List{SignatureAlgorithm} -> ExtensionItem [ctor] .
+  op signature-algorithms-cert-len : MsgSize -> ExtensionItem [ctor] .
+
+  op key-shares : NamedGroup -> ExtensionItem [ctor] . 
+  op key-shares : List{KeyShareEntry} -> ExtensionItem [ctor] .
+  op key-shares-len : MsgSize -> ExtensionItem [ctor] .
+
+  --- [Note] In the case of TLS 1.2, it refers to the elliptic_curves extension
+  op supported-groups : List{NamedGroup} -> ExtensionItem [ctor] .
+  op supported-groups-len : MsgSize -> ExtensionItem [ctor] .
+
+  op psk-key-exchange-mode : List{PreSharedKeyExchangeMode} -> ExtensionItem [ctor] .
+  op psk-key-exchange-mode-len : MsgSize -> ExtensionItem [ctor] .
+
+  --- PskIdentity (do not consider obfuscated_ticket_age), PSKBinders (A series of HMAC values)
+  op pre-shared-key : List{TicketId} List{Nonce} -> ExtensionItem [ctor] .
+  op pre-shared-key : Nat -> ExtensionItem [ctor] .
+  op pre-shared-key-len : MsgSize -> ExtensionItem [ctor] .
+
+  op early-data : -> ExtensionItem [ctor] .
+  op early-data-len : MsgSize -> ExtensionItem [ctor] .
+
+  op post-handshake : -> ExtensionItem [ctor] .
+  op post-handshake-len : MsgSize -> ExtensionItem [ctor] .
+
+  op renegotiation-info : Nonce? Nonce? -> ExtensionItem [ctor] .
+  op renegotiation-info-len : MsgSize -> ExtensionItem [ctor] .
+
+  --- CKS (Client Key Share) extension used by wolfSSL dual-algorithm certificate mode.
+  op cks : -> ExtensionItem [ctor] .
+  op cks-len : MsgSize -> ExtensionItem [ctor] .
+
+  op cookie : -> ExtensionItem [ctor] .
+  op cookie : Nonce? -> ExtensionItem [ctor] .
+  op cookie-len : MsgSize -> ExtensionItem [ctor] .
+  op unknown-extension : -> ExtensionItem [ctor] .
+  op unknown-extension-len : MsgSize -> ExtensionItem [ctor] .
+  op oid-filters : -> ExtensionItem [ctor] .
+  op oid-filters : List{OIDFilter} -> ExtensionItem [ctor] .
+  op oid-filters-len : MsgSize -> ExtensionItem [ctor] .
+  op status-request-v2 : -> ExtensionItem [ctor] .
+  op status-request-v2-len : MsgSize -> ExtensionItem [ctor] .
+endfm
+
+fmod KEY-DERIVATION is
+  protecting HASH .
+  protecting STRING .
+  protecting MESSAGE-CONTENT .
+  protecting NONCE? .
+  protecting SYM-KEY-TYPE .
+
+  var SECRET : Nonce? .
+  var LABEL : String .
+  var MSG : MsgContent .
+  var HALGO : HashAlgorithm .
+
+  --- HKDF-Extract(Salt, InputKeyingMaterial)
+  --- Note: The hash function used for calculating HMAC is the cipher suite hash algorithm.
+  op hkdfExtract : Nonce? Nonce? HashAlgorithm -> Nonce [ctor] .
+
+  --- HKDF-Expand-Label(Secret, Label, Context, Length) 
+  --- Note: Context is transcript-hash of messages or other nonce values.
+  --- Note: Key length is required as an argument for traffic key calculation.
+  op hkdfExpandLabel : Nonce? String Nonce? HashAlgorithm -> Nonce [ctor] .
+  op hkdfExpandLabel : Nonce? String Nonce? SymKeyType -> Nonce [ctor] .
+
+  --- Derive-Secret(Secret,Label,Message) = 
+  --- HKDF-Expand-Label(Secret, Label, Transcript-Hash(Message), Hash.length)
+  --- Note: The HASH function used by Transcript-Hash and HKDF is the cipher suite hash algorithm.
+  op deriveSecret : Nonce? String MsgContent HashAlgorithm -> Nonce .
+  eq deriveSecret(SECRET, LABEL, MSG, HALGO) = hkdfExpandLabel(SECRET, LABEL, hash(HALGO, MSG), HALGO) .
+endfm
