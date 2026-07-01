@@ -49,33 +49,8 @@
 
     <h2>Abstract</h2>
     <p>
-      Transport Layer Security (TLS) libraries implement stateful handshakes in
-      which message acceptance depends on protocol state and context. A TLS library
-      may therefore accept a specification-violating message without crashing or
-      failing visibly. Such bugs are hard to find without a specification-level
-      oracle -- and even once found, judging exploitability is a separate, largely
-      manual task.
-    </p>
-    <p>
-      We address both detection and exploitability by making off-specification
-      behavior and exploitable outcomes explicit targets for test generation. At its
-      core is an executable formal model of the TLS handshake, built from the TLS
-      RFCs, that serves as a specification-level oracle. Over it we define behavior
-      deviations, parameterized ways a handshake can depart from the specification,
-      and scenario properties, which steer generation toward outcomes from rejection
-      through acceptance to completion under an invalid message. Both are reusable
-      across handshake contexts and extensible for target-specific behavior.
-    </p>
-    <p>
-      Our framework compiles these into black-box tests against unmodified TLS
-      libraries and continues each exposed violation on the same library --
-      automatically when the violated requirement is modeled -- until a completed
-      handshake is reached, exposing the security impact of the accepted behavior,
-      such as peer impersonation or connection downgrade. Within the modeled TLS
-      handshake scope, we find 16 previously unknown specification violations in
-      recent stable versions of GnuTLS, MbedTLS, and WolfSSL, of which 8 were
-      confirmed as new vulnerabilities and assigned CVEs; the framework also finds
-      more RFC-level violations than prior tools.
+This page explains the artifact for our paper: "From Specification Violations to Exploitability: Deviation-Guided Testing of TLS Libraries".
+The artifact provides the formal model, the benchmark, and test-generation scripts for reproducing the experiments, along with details on the model test specifications, and results. 
     </p>
 
     <h2>Supplementary Materials</h2>
