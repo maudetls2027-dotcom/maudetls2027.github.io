@@ -1,9 +1,0 @@
-		     \||||||||||||||||||/
-		   --- Welcome to Maude ---
-		     /||||||||||||||||||\
-	     Maude 3.4 built: Mar 15 2024 20:07:12
-	     Copyright 1997-2024 SRI International
-		   Sun Jun 28 11:29:56 2026
-==========================================
-reduce in RQ1-TLS13-PSK : rq1CountUpTo(TLS-13, initialCWA, rq1Tls13PskKeConf,
-    rq1Tls13PskKeP3Set, rq1Tls13PskKeP3Property, 0, 303) .

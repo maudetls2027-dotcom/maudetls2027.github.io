@@ -1,2 +1,0 @@
-load 8446-base.maude
-load ../scenario/rfc/8446-core.maude

@@ -1,7 +1,0 @@
-fmod TLS-COMPONENT-ID is
-  sort TId .
-endfm
-
-view TId from TRIV to TLS-COMPONENT-ID is
-  sort Elt to TId .
-endv
